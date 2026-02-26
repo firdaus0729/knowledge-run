@@ -73,25 +73,19 @@ export class Foreground {
         }
 
         // --- 2. STANDARD FOREGROUND ---
-        // Tunnel sequence (City Gates) only happens in City/Transition
-        if ((zone === 'CITY' || zone === 'TRANSITION') && !this.isSpawningTunnel && this.tunnelTimer > this.nextTunnelTime) {
-            this.startTunnelSequence();
-        }
-
+        // Tunnel sequence (City Gates / large archways) disabled – that part is removed
         if (this.isSpawningTunnel) {
-            if (this.spawnTimer > 1200) { 
-                this.spawnCityGate();
+            if (this.spawnTimer > 1200) {
                 this.spawnTimer = 0;
                 this.tunnelCountRemaining--;
-                
                 if (this.tunnelCountRemaining <= 0) {
                     this.isSpawningTunnel = false;
                     this.nextTunnelTime = Phaser.Math.Between(25000, 40000);
-                    this.spawnTimer = -2000; 
+                    this.spawnTimer = -2000;
                 }
             }
-        } 
-        else {
+        }
+        if (!this.isSpawningTunnel) {
             if (this.spawnTimer > this.nextSpawnTime) { 
                 if (zone === 'DESERT') {
                     this.spawnDesertElement();
@@ -368,14 +362,13 @@ export class Foreground {
   private spawnCityElement() {
       const type = Math.random();
       if (type < 0.15) this.spawnLanternPost();
-      else if (type < 0.25) this.spawnHangingLamp(); 
-      else if (type < 0.40) this.spawnAwning(); 
-      else if (type < 0.50) this.spawnCarpetRack(); 
-      else if (type < 0.60) this.spawnPotteryCluster(); 
-      else if (type < 0.70) this.spawnSpiceBaskets(); 
-      else if (type < 0.80) this.spawnRooftopVent(); 
-      else if (type < 0.90) this.spawnStringLights();
-      else { this.spawnArchway(); this.nextSpawnTime += 1500; }
+      else if (type < 0.25) this.spawnHangingLamp();
+      else if (type < 0.40) this.spawnAwning();
+      else if (type < 0.50) this.spawnCarpetRack();
+      else if (type < 0.60) this.spawnPotteryCluster();
+      else if (type < 0.70) this.spawnSpiceBaskets();
+      else if (type < 0.80) this.spawnRooftopVent();
+      else this.spawnStringLights();
   }
 
   // --- CITY ELEMENT HELPERS ---

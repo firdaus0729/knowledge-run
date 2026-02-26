@@ -12,7 +12,6 @@ export class MagicGate extends Phaser.GameObjects.Container {
 
   // Visuals
   private outerArch!: Phaser.GameObjects.Sprite;
-  private innerRing!: Phaser.GameObjects.Sprite;
   private vortex!: Phaser.GameObjects.Sprite;
   private vortexCore!: Phaser.GameObjects.Sprite;
   private nebula!: Phaser.GameObjects.Sprite;
@@ -39,7 +38,7 @@ export class MagicGate extends Phaser.GameObjects.Container {
   }
 
   private createVisuals() {
-    // 1. God Rays – golden/mystical glow (magical, cinematic)
+    // 1. God Rays – golden/mystical glow
     this.godRays = this.scene.add.image(0, -250, 'gate_rays');
     this.godRays.setBlendMode(Phaser.BlendModes.ADD);
     this.godRays.setAlpha(0.45);
@@ -71,10 +70,10 @@ export class MagicGate extends Phaser.GameObjects.Container {
         ease: 'Linear'
     });
 
-    // 3. The Vortex (Swirling Star Field)
+    // 3. The Vortex (Swirling star field)
     this.vortex = this.scene.add.sprite(0, -250, 'gate_portal_swirl');
     this.vortex.setAlpha(0.9);
-    this.vortex.setScale(0.2); // Start visible but small
+    this.vortex.setScale(0.2);
     this.vortex.setBlendMode(Phaser.BlendModes.ADD);
     this.add(this.vortex);
 
@@ -86,7 +85,7 @@ export class MagicGate extends Phaser.GameObjects.Container {
         ease: 'Linear'
     });
 
-    // 4. Vortex Core (Bright golden center – mystical light)
+    // 4. Vortex Core (Bright golden center – “entering the light”)
     this.vortexCore = this.scene.add.sprite(0, -250, 'gate_core');
     this.vortexCore.setScale(0.5);
     this.vortexCore.setAlpha(1);
@@ -94,12 +93,11 @@ export class MagicGate extends Phaser.GameObjects.Container {
     this.vortexCore.setTint(0xffdd77);
     this.add(this.vortexCore);
 
-    // 5. Ancient Floating Arch (Obsidian Monolith)
+    // 5. Ancient Floating Arch
     this.outerArch = this.scene.add.sprite(0, 0, 'gate_ancient_arch');
-    this.outerArch.setOrigin(0.5, 1); 
+    this.outerArch.setOrigin(0.5, 1);
     this.add(this.outerArch);
-    
-    // Float Animation for Arch
+
     this.scene.tweens.add({
         targets: this.outerArch,
         y: '-=15',
@@ -116,14 +114,11 @@ export class MagicGate extends Phaser.GameObjects.Container {
         { x: -260, y: -150, s: 0.5 },
         { x: 260, y: -100, s: 0.7 }
     ];
-    
     debrisPos.forEach((pos, i) => {
         const rock = this.scene.add.image(pos.x, pos.y, 'gate_debris');
         rock.setScale(pos.s);
         this.add(rock);
         this.floatingRocks.push(rock);
-        
-        // Independent Float
         this.scene.tweens.add({
             targets: rock,
             y: pos.y + (Math.random() * 20 - 10),
@@ -144,28 +139,21 @@ export class MagicGate extends Phaser.GameObjects.Container {
   }
 
   private createParticles() {
-      // Suction Effect (Gold/Cyan)
       if (!this.scene.textures.exists('star_collectible')) return;
-
       this.suctionEmitter = this.scene.add.particles(0, -250, 'star_collectible', {
           scale: { start: 0.4, end: 0 },
-          alpha: { start: 0, end: 1, ease: 'Sine.easeIn' }, 
+          alpha: { start: 0, end: 1, ease: 'Sine.easeIn' },
           lifespan: 1000,
           speed: 0,
           quantity: 3,
           frequency: 40,
           blendMode: 'ADD',
-          tint: [0x00e5ff, 0xffd700], 
-          emitZone: { 
-              type: 'edge', 
-              source: new Phaser.Geom.Circle(0, 0, 400), 
-              quantity: 24
-          },
+          tint: [0xffd700, 0xffa500, 0xff8c00],
+          emitZone: { type: 'edge', source: new Phaser.Geom.Circle(0, 0, 400), quantity: 24 },
           moveToX: 0,
-          moveToY: -250, 
+          moveToY: -250,
           emitting: true
       });
-      
       this.add(this.suctionEmitter);
   }
 
@@ -224,14 +212,12 @@ export class MagicGate extends Phaser.GameObjects.Container {
           ease: 'Sine.out'
       });
 
-      // 6. Increase Particle Suction
       this.suctionEmitter.setConfig({
-          frequency: 5, // Extremely fast
+          frequency: 5,
           quantity: 10,
           timeScale: 3.0
       });
-      
-      // 7. Debris sucked in
+
       this.floatingRocks.forEach(rock => {
           this.scene.tweens.add({
               targets: rock,
@@ -275,124 +261,100 @@ export class MagicGate extends Phaser.GameObjects.Container {
           return this.scene.textures.createCanvas(name, w, h);
       };
 
-      // 1. ANCIENT ARCH (Floating Obsidian Monolith Ring)
+      // 1. GOLDEN RING FRAME (circular portal frame – like reference image)
       const archTex = getTexture('gate_ancient_arch', 600, 800);
       if (archTex) {
           const ctx = archTex.context;
           const cx = 300;
-          
-          // Outer Shape (Jagged Ring)
-          const R = 240;
-          const r = 180;
-          
+          const cy = 250;
+          const outerR = 260;
+          const innerR = 200;
           ctx.beginPath();
-          // Draw outer jagged circle
-          for (let a = 0; a < Math.PI * 2; a += 0.1) {
-              const rad = R + (Math.random() * 10 - 5);
-              const x = cx + Math.cos(a) * rad;
-              const y = (800 - 550) + Math.sin(a) * rad; 
-              if (a===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-          }
-          ctx.closePath();
-          
-          // Draw inner smooth circle (cutout)
-          ctx.arc(cx, 250, r, 0, Math.PI * 2, true);
-          ctx.closePath();
-
-          // Obsidian Texture Gradient
-          const grd = ctx.createLinearGradient(0, 0, 0, 800);
-          grd.addColorStop(0, '#212121'); // Dark Grey
-          grd.addColorStop(0.5, '#000000'); // Black
-          grd.addColorStop(1, '#1a1a1a');
-          ctx.fillStyle = grd;
+          ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+          ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
+          const ringGrd = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
+          ringGrd.addColorStop(0, 'rgba(255, 200, 0, 0)');
+          ringGrd.addColorStop(0.3, 'rgba(255, 180, 0, 0.4)');
+          ringGrd.addColorStop(0.7, 'rgba(218, 165, 32, 0.9)');
+          ringGrd.addColorStop(1, 'rgba(184, 134, 11, 0.95)');
+          ctx.fillStyle = ringGrd;
           ctx.fill();
-
-          // Highlight Edges (Purple/Blue sheen)
-          ctx.strokeStyle = '#4a148c'; 
-          ctx.lineWidth = 2;
-          ctx.stroke();
-
-          // Gold Inlays (Runes)
           ctx.strokeStyle = '#ffd700';
-          ctx.lineWidth = 3;
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = '#ff6f00';
-          
-          for(let i=0; i<8; i++) {
-              const ang = (i / 8) * Math.PI * 2;
-              const tx = cx + Math.cos(ang) * (R - 30);
-              const ty = 250 + Math.sin(ang) * (R - 30);
-              
-              ctx.beginPath();
-              ctx.moveTo(tx - 10, ty);
-              ctx.lineTo(tx + 10, ty);
-              ctx.lineTo(tx, ty + 15);
-              ctx.stroke();
-          }
+          ctx.lineWidth = 8;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(255, 215, 0, 0.9)';
+          ctx.lineWidth = 4;
+          ctx.stroke();
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = '#ff8c00';
+          ctx.beginPath();
+          ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+          ctx.strokeStyle = '#ffa500';
+          ctx.lineWidth = 6;
+          ctx.stroke();
           ctx.shadowBlur = 0;
-
-          archTex.refresh(); // CORRECT: Call refresh on texture
+          archTex.refresh();
       }
 
-      // 2. PORTAL SWIRL (The Vortex - Bigger & Thicker)
+      // 2. PORTAL SWIRL (golden vortex – spiral like reference, all gold)
       const swirlTex = getTexture('gate_portal_swirl', 512, 512);
       if (swirlTex) {
           const ctx = swirlTex.context;
           const cx = 256;
-          
-          // Spiral Arms
-          for(let arm=0; arm<3; arm++) {
+          for (let arm = 0; arm < 4; arm++) {
               ctx.beginPath();
-              const offset = (Math.PI * 2 / 3) * arm;
-              for(let i=0; i<100; i++) {
-                  const angle = 0.1 * i + offset;
-                  // Increase multiplier to spread spiral wider (was 2.5)
-                  const radius = i * 3.5; 
+              const offset = (Math.PI * 2 / 4) * arm;
+              for (let i = 0; i < 110; i++) {
+                  const angle = 0.09 * i + offset;
+                  const radius = i * 2.6;
                   const x = cx + Math.cos(angle) * radius;
                   const y = cx + Math.sin(angle) * radius;
-                  if (i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                  if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
               }
-              
               const grd = ctx.createRadialGradient(cx, cx, 0, cx, cx, 256);
-              grd.addColorStop(0, 'rgba(255, 255, 255, 0)');
-              grd.addColorStop(0.3, 'rgba(0, 229, 255, 0.9)'); // Bright Cyan
-              grd.addColorStop(1, 'rgba(0, 0, 0, 0)');
-              
-              // Much thicker lines for visibility (was 15)
-              ctx.lineWidth = 30 - (arm*4); 
+              grd.addColorStop(0, 'rgba(255, 255, 220, 0)');
+              grd.addColorStop(0.25, 'rgba(255, 220, 100, 0.95)');
+              grd.addColorStop(0.5, 'rgba(255, 180, 50, 0.85)');
+              grd.addColorStop(0.75, 'rgba(218, 165, 32, 0.4)');
+              grd.addColorStop(1, 'rgba(184, 134, 11, 0)');
+              ctx.lineWidth = 26 - (arm * 3);
               ctx.lineCap = 'round';
               ctx.strokeStyle = grd;
               ctx.stroke();
           }
-          swirlTex.refresh(); // CORRECT
+          swirlTex.refresh();
       }
 
-      // 3. NEBULA (Golden/mystical background glow)
+      // 3. NEBULA (rich gold halo – as gold as possible)
       const nebTex = getTexture('gate_nebula', 512, 512);
       if (nebTex) {
           const ctx = nebTex.context;
           const cx = 256;
-          const grd = ctx.createRadialGradient(cx, cx, 20, cx, cx, 250);
-          grd.addColorStop(0, 'rgba(255, 200, 80, 0.85)');  // Golden center
-          grd.addColorStop(0.4, 'rgba(180, 120, 40, 0.5)'); // Amber
-          grd.addColorStop(1, 'rgba(0,0,0,0)');
+          const grd = ctx.createRadialGradient(cx, cx, 10, cx, cx, 255);
+          grd.addColorStop(0, 'rgba(255, 235, 150, 0.95)');
+          grd.addColorStop(0.3, 'rgba(255, 200, 80, 0.8)');
+          grd.addColorStop(0.6, 'rgba(218, 165, 32, 0.4)');
+          grd.addColorStop(1, 'rgba(184, 134, 11, 0)');
           ctx.fillStyle = grd;
-          ctx.fillRect(0,0,512,512);
+          ctx.fillRect(0, 0, 512, 512);
           nebTex.refresh();
       }
 
-      // 4. CORE (Bright golden center – mystical light)
+      // 4. CORE (Intense white/pink center – “entering the light”)
       const coreTex = getTexture('gate_core', 128, 128);
       if (coreTex) {
           const ctx = coreTex.context;
           const cx = 64;
           const grd = ctx.createRadialGradient(cx, cx, 0, cx, cx, 64);
           grd.addColorStop(0, '#ffffff');
-          grd.addColorStop(0.3, '#ffe066'); // Gold
-          grd.addColorStop(0.6, 'rgba(255, 180, 0, 0.5)');
-          grd.addColorStop(1, 'rgba(0,0,0,0)');
+          grd.addColorStop(0.15, 'rgba(255, 250, 200, 0.98)');
+          grd.addColorStop(0.35, 'rgba(255, 220, 100, 0.9)');
+          grd.addColorStop(0.6, 'rgba(255, 180, 50, 0.5)');
+          grd.addColorStop(1, 'rgba(218, 165, 32, 0)');
           ctx.fillStyle = grd;
-          ctx.fillRect(0,0,128,128);
+          ctx.fillRect(0, 0, 128, 128);
           coreTex.refresh();
       }
 

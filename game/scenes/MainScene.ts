@@ -44,6 +44,7 @@ export class MainScene extends Phaser.Scene {
   private sandstormOverlay!: Phaser.GameObjects.TileSprite;
   private sandstormEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
   private debrisEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private cinematicVignette!: Phaser.GameObjects.Image;
 
   // Game State
   public baseSpeed: number = PHYSICS.RUN_SPEED; 
@@ -131,6 +132,7 @@ export class MainScene extends Phaser.Scene {
     // 4. VFX Overlays
     this.createSandstormOverlay();
     this.createSandstormEmitter();
+    this.createCinematicVignette();
 
     // 5. Setup Collisions
     this.collisionManager.setupCollisions();
@@ -324,6 +326,10 @@ export class MainScene extends Phaser.Scene {
 
     this.checkGuidanceTriggers();
 
+    if (this.cinematicVignette) {
+        this.cinematicVignette.setVisible(this.eventManager.eventPhase === 'LEVEL_END_GATE');
+    }
+
     if (time > this.lastUiUpdate + 100) {
         this.syncUI();
         this.lastUiUpdate = time;
@@ -381,6 +387,32 @@ export class MainScene extends Phaser.Scene {
       });
       this.sandstormEmitter.setDepth(101); 
       this.sandstormEmitter.setScrollFactor(0);
+  }
+
+  private createCinematicVignette() {
+      const { width, height } = this.scale;
+      if (!this.textures.exists('cinematic_vignette')) {
+          const w = 512;
+          const h = 512;
+          const canvas = this.textures.createCanvas('cinematic_vignette', w, h);
+          if (canvas) {
+              const ctx = canvas.context;
+              const cx = w / 2;
+              const cy = h / 2;
+              const grd = ctx.createRadialGradient(cx, cy, w * 0.15, cx, cy, w * 0.7);
+              grd.addColorStop(0, 'rgba(0,0,0,0)');
+              grd.addColorStop(0.5, 'rgba(0,0,0,0.15)');
+              grd.addColorStop(1, 'rgba(0,0,0,0.7)');
+              ctx.fillStyle = grd;
+              ctx.fillRect(0, 0, w, h);
+              canvas.refresh();
+          }
+      }
+      this.cinematicVignette = this.add.image(width / 2, height / 2, 'cinematic_vignette');
+      this.cinematicVignette.setScrollFactor(0);
+      this.cinematicVignette.setDepth(199);
+      this.cinematicVignette.setVisible(false);
+      this.cinematicVignette.setDisplaySize(width, height);
   }
 
   public triggerSandstormEffects(active: boolean) {
@@ -470,6 +502,10 @@ export class MainScene extends Phaser.Scene {
       }
       if (this.sandstormEmitter) {
           this.sandstormEmitter.setPosition(width + 50, 0);
+      }
+      if (this.cinematicVignette) {
+          this.cinematicVignette.setPosition(width / 2, height / 2);
+          this.cinematicVignette.setDisplaySize(width, height);
       }
       if (this.player.y > height + 200 && !this.eventManager.eventPhase.startsWith('INTRO') && !this.player.isFlying) {
           this.player.y = height - 200;

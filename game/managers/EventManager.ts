@@ -362,12 +362,37 @@ export class EventManager {
           this.scene.time.delayedCall(2000, () => {
               this.scene.hideNoorMessage();
               if (this.currentGate) this.currentGate.open();
-              // Show stage results before transition; user clicks Continue to proceed
-              this.scene.time.delayedCall(2800, () => {
-                  this.scene.showDesertStageResults();
+              // Movie-like: character actually enters the magic gate (walk into the light)
+              this.scene.time.delayedCall(700, () => {
+                  this.playCharacterEnteringGate();
               });
           });
       }
+  }
+
+  /** Character walks into the portal center and fades into the light (movie moment). */
+  private playCharacterEnteringGate() {
+      const player = this.scene.player;
+      const gate = this.currentGate;
+      if (!gate || !gate.active) {
+          this.scene.showDesertStageResults();
+          return;
+      }
+      const centerX = this.scene.scale.width / 2;
+      const portalCenterY = gate.y - 220;
+      player.setDepth(30);
+      this.scene.tweens.add({
+          targets: player,
+          x: centerX,
+          y: portalCenterY,
+          scale: 0.22,
+          alpha: 0,
+          duration: 1600,
+          ease: 'Cubic.in',
+          onComplete: () => {
+              this.scene.showDesertStageResults();
+          }
+      });
   }
 
   public continueDesertTransition() {
@@ -380,12 +405,18 @@ export class EventManager {
   private startStage2Transition() {
       this.eventPhase = 'LEVEL_TRANSITION';
       this.scene.recordCityStart(this.scene.getRunDistance());
-      this.scene.advanceStage(); 
+      this.scene.advanceStage();
       this.scene.environmentManager.transitionToCity();
       if (this.currentGate) {
           this.currentGate.destroy();
           this.currentGate = null;
       }
+      // Reset player after “entering gate” (scale/alpha were tweened)
+      const player = this.scene.player;
+      player.setScale(1);
+      player.setAlpha(1);
+      player.setDepth(20);
+      player.setPosition(100, this.scene.scale.height - 200);
       this.scene.time.delayedCall(2000, () => {
           this.beginStage2Intro();
       });
