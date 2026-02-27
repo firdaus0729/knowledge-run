@@ -432,24 +432,17 @@ export class EventManager {
       
       this.scene.cameras.main.once('camerafadeincomplete', () => {
           this.scene.recordCityStageStart();
-          this.scene.showNoorMessage("مرحباً بك في مدينة العلم. 🏙️", false, 'greet'); 
+          // City intro – new multiline text
+          this.scene.showNoorMessage("مرحبًا بك في مدينة العلم…\nقد لا تكون الرحلة سهلة،\nلكنني سأكون معك في كل خطوة.", false, 'greet'); 
           
-          this.scene.time.delayedCall(4000, () => {
-              this.scene.showNoorMessage("هنا، الركض وحده لا يكفي... عليك الانتباه للطرق العالية.", false, 'greet');
+          this.scene.time.delayedCall(5000, () => {
+              this.scene.hideNoorMessage();
+              this.eventPhase = 'NONE';
+              this.isEncounterActive = false;
+              this.encounterType = 'NONE';
               
-              this.scene.time.delayedCall(4500, () => {
-                  this.scene.showNoorMessage("كل طريق يحمل معرفة، وكل خطوة تقربك أكثر.", false, 'greet');
-                  
-                  this.scene.time.delayedCall(4000, () => {
-                      this.scene.hideNoorMessage();
-                      this.eventPhase = 'NONE';
-                      this.isEncounterActive = false;
-                      this.encounterType = 'NONE';
-                      
-                      this.scene.setGameSpeed(1.0);
-                      this.scene.player.play('run');
-                  });
-              });
+              this.scene.setGameSpeed(1.0);
+              this.scene.player.play('run');
           });
       });
   }
@@ -570,7 +563,8 @@ export class EventManager {
 
   private startShelterInteraction() {
       if (this.refugeTent && this.refugeTent.active) this.refugeTent.setOccupied(true);
-      this.scene.showNoorMessage("الحمد لله! نحن في أمان هنا. 🏕️", false, 'greet');
+      // Safe inside the tent – happy/safe expression
+      this.scene.showNoorMessage("الحمد لله! نحن في أمان هنا. 🏕️", false, 'success');
       this.scene.replenishHealth(); 
       this.scene.time.delayedCall(3000, () => {
           this.triggerCutscene();
@@ -593,13 +587,11 @@ export class EventManager {
       this.scene.cameras.main.once('camerafadeincomplete', () => {
           this.scene.tweens.add({ targets: this.scene.player, alpha: 1, scale: 1, duration: 500 });
           this.scene.time.delayedCall(500, () => {
-              this.scene.showNoorMessage("لا تخف... هذه المدينة مليئة بالتحديات.", false, 'greet');
+              // Storm over – revert to simple thankful line
+              this.scene.showNoorMessage("الحمد لله! انتهت العاصفة الرملية.", false, 'success');
               this.scene.time.delayedCall(4500, () => {
-                  this.scene.showNoorMessage("سأرافقك في هذه الرحلة وأرشدك في طريق العلم.", false, 'greet');
-                  this.scene.time.delayedCall(4500, () => {
-                      this.scene.hideNoorMessage();
-                      this.resumeRunFromShelter();
-                  });
+                  this.scene.hideNoorMessage();
+                  this.resumeRunFromShelter();
               });
           });
       });

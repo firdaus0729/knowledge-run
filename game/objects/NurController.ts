@@ -20,7 +20,10 @@ const NUR_IMAGE_KEYS: Record<NurState, string> = {
 /** Nur display size (150x150) and gold ring */
 const NUR_DISPLAY_SIZE = 150;
 const NUR_BORDER_RADIUS = 83; // Slightly outside 150x150 (half = 75)
-const NUR_SPRITE_OFFSET_Y = -10;
+/** Gold circle center (vertical). Kept slightly above so circle frames from above. */
+const NUR_CIRCLE_OFFSET_Y = 0;
+/** Sprite center below circle so raised hand stays inside the circle */
+const NUR_SPRITE_OFFSET_Y = 14;
 const NUR_MESSAGE_OFFSET_Y = 92; // Below 150px image so text does not overlap
 /** When position is 'top': place Nur so gap to speech bubble (top-36, ~50px tall) is ~5px. Bubble bottom ≈ 194px, so Nur top = 199px, container y = 199 + 75 + 10 = 284. */
 const NUR_TOP_Y_PX = 284;
@@ -35,6 +38,7 @@ export class NurController {
 
   private currentState: NurState | null = null;
   private floatTween: Phaser.Tweens.Tween | null = null;
+  private breathTween: Phaser.Tweens.Tween | null = null;
   /** When true, use the 5 loaded PNGs; when false, use procedural sprite sheet */
   private useImageAssets: boolean = false;
 
@@ -82,12 +86,12 @@ export class NurController {
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDisplaySize(NUR_DISPLAY_SIZE, NUR_DISPLAY_SIZE);
 
-    // Gold circular border around Nur
+    // Gold circular border around Nur (circle center separate so sprite can sit lower inside it)
     this.goldBorder = this.scene.add.graphics();
     this.goldBorder.lineStyle(4, 0xffd700, 1);
-    this.goldBorder.strokeCircle(0, NUR_SPRITE_OFFSET_Y, NUR_BORDER_RADIUS);
+    this.goldBorder.strokeCircle(0, NUR_CIRCLE_OFFSET_Y, NUR_BORDER_RADIUS);
     this.goldBorder.lineStyle(2, 0xffec8b, 0.6);
-    this.goldBorder.strokeCircle(0, NUR_SPRITE_OFFSET_Y, NUR_BORDER_RADIUS - 2);
+    this.goldBorder.strokeCircle(0, NUR_CIRCLE_OFFSET_Y, NUR_BORDER_RADIUS - 2);
 
     this.container.add([glow, this.sprite, this.goldBorder]);
   }
@@ -164,14 +168,33 @@ export class NurController {
       this.currentState = state;
     }
 
-    // Floating idle tween
+    // Floating idle tween (slightly more visible vertical motion)
     if (this.floatTween) {
       this.floatTween.stop();
       this.floatTween = null;
     }
     this.floatTween = this.scene.tweens.add({
       targets: this.container,
-      y: this.container.y - 8,
+      y: this.container.y - 6,
+      duration: 2200,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Gentle breathing / body motion on the sprite itself
+    if (this.breathTween) {
+      this.breathTween.stop();
+      this.breathTween = null;
+    }
+    const baseScaleX = this.sprite.scaleX;
+    const baseScaleY = this.sprite.scaleY;
+    const baseY = this.sprite.y;
+    this.breathTween = this.scene.tweens.add({
+      targets: this.sprite,
+      scaleX: baseScaleX * 1.03,
+      scaleY: baseScaleY * 0.97,
+      y: baseY - 3,
       duration: 2200,
       yoyo: true,
       repeat: -1,
@@ -208,6 +231,10 @@ export class NurController {
     if (this.floatTween) {
       this.floatTween.stop();
       this.floatTween = null;
+    }
+    if (this.breathTween) {
+      this.breathTween.stop();
+      this.breathTween = null;
     }
     if (this.messageText) {
       this.messageText.destroy();

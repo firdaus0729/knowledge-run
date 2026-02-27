@@ -152,14 +152,13 @@ export class MainScene extends Phaser.Scene {
     this.startNurIntro();
   }
 
-  /** Nur appears at center: old explanation prominent, new explanation as less prominent paragraph */
+  /** Nur appears at center with city-intro style line before the run begins */
   private startNurIntro() {
-    const mainMessage = 'هيا… لنبدأ طريق المعرفة.';
-    const secondaryMessage = 'رحلتنا اليوم ليست مجرد ركض… بل طريقٌ نحو الحكمة.';
+    const mainMessage =
+      'مرحبًا بك في مدينة العلم…\nقد لا تكون الرحلة سهلة،\nلكنني سأكون معك في كل خطوة.';
     this.nurController.show('greet', {
       position: 'center',
-      message: mainMessage,
-      secondaryMessage
+      message: mainMessage
     });
 
     this.time.delayedCall(5500, () => {
@@ -408,7 +407,8 @@ export class MainScene extends Phaser.Scene {
       this.tweens.add({ targets: this.sandstormOverlay, alpha: 0.8, duration: 2500, ease: 'Sine.easeInOut' });
       this.triggerSandstormEffects(true);
       this.player.startStruggle();
-      this.showNoorMessage('انتبه… القادم يحتاج تركيزًا.', false, 'warning');
+      // Sandstorm warning – clearer that a sandstorm is coming
+      this.showNoorMessage('انتبه… عاصفة رملية قادمة!', false, 'warning');
   }
 
   public endSandstorm() {
