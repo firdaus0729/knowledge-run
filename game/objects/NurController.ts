@@ -19,9 +19,9 @@ const NUR_IMAGE_KEYS: Record<NurState, string> = {
 
 /** Nur display size (150x150) and gold ring */
 const NUR_DISPLAY_SIZE = 150;
-const NUR_BORDER_RADIUS = 83; // Slightly outside 150x150 (half = 75)
+const NUR_BORDER_RADIUS = 85; // Slightly outside 150x150 (half = 75)
 /** Gold circle center (vertical). Kept slightly above so circle frames from above. */
-const NUR_CIRCLE_OFFSET_Y = 0;
+const NUR_CIRCLE_OFFSET_Y = 8;
 /** Sprite center below circle so raised hand stays inside the circle */
 const NUR_SPRITE_OFFSET_Y = 14;
 const NUR_MESSAGE_OFFSET_Y = 92; // Below 150px image so text does not overlap
