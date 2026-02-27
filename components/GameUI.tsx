@@ -67,22 +67,12 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
   return (
     <div className="font-['Cairo']" dir="rtl">
       
-      {/* 1. NOOR GUIDANCE SYSTEM (The "Helper" Widget) */}
+      {/* Nur guidance message – sits below Nur (drawn in Phaser at ~26% from top) */}
       <div 
-        className={`absolute top-24 left-0 right-0 z-30 flex justify-center pointer-events-none transition-all duration-500 transform ${showNoor ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}`}
+        className={`absolute top-36 left-0 right-0 z-30 flex justify-center pointer-events-none transition-all duration-500 transform ${showNoor ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}`}
       >
-          {/* Phase 1 Spec: Small circular avatar, side or top, friendly tone */}
-          <div className="bg-[#1a1625]/90 backdrop-blur-md border border-[#ffd700]/50 px-3 py-2 pr-2 rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex items-center gap-3 max-w-[90%] md:max-w-md animate-in slide-in-from-top-4 duration-500">
-             {/* Avatar */}
-             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#ffd700] overflow-hidden shadow-inner bg-[#2d2640] shrink-0">
-                 <img 
-                    src="https://ucarecdn.com/64926886-4015-49f7-9ebc-f3f206cf82e0/Gemini_Generated_Image_x273efx273efx273removebgpreview.png"
-                    alt="Noor"
-                    className="w-full h-full object-cover object-top"
-                 />
-             </div>
-             {/* Speech */}
-             <p className="text-white font-bold text-sm md:text-base leading-tight pl-2">
+          <div className="bg-[#1a1625]/92 backdrop-blur-md border border-[#ffd700]/40 px-4 py-3 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.35)] max-w-[90%] md:max-w-md animate-in slide-in-from-top-4 duration-500">
+             <p className="text-white font-bold text-sm md:text-base leading-relaxed text-center">
                  {noorText}
              </p>
           </div>

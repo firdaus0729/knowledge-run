@@ -203,8 +203,8 @@ export class EventManager {
   public triggerRooftopTutorial() {
       if (this.hasTriggeredRooftopTutorial) return;
       this.hasTriggeredRooftopTutorial = true;
-      
-      this.scene.showNoorMessage("انظر للأعلى! الطريق يكمل فوق الأسطح!", false);
+
+      this.scene.showNoorMessage('استعد… التحدي يقترب.', false, 'warning');
   }
 
   // --- CARPET EVENT ---
@@ -232,7 +232,7 @@ export class EventManager {
       this.carpetMissed = true;
       this.nextCarpetSpawnPos = this.scene.getRunDistance() + 400; // Try again in 400m
       this.encounterType = 'NONE';
-      this.scene.showNoorMessage("لقد فاتنا البساط! لا تقلق، سيظهر مرة أخرى.", false);
+      this.scene.showNoorMessage("لقد فاتنا البساط! لا تقلق، سيظهر مرة أخرى.", false, 'greet');
   }
 
   private spawnMagicCarpet() {
@@ -241,7 +241,7 @@ export class EventManager {
       
       this.currentCarpet = new MagicCarpet(this.scene, spawnX, groundY);
       this.encounterType = 'CARPET';
-      this.scene.showNoorMessage("انظر! بساط الريح السحري! اقفز عليه! 🧞‍♂️", false);
+      this.scene.showNoorMessage("انظر! بساط الريح السحري! اقفز عليه! 🧞‍♂️", false, 'greet');
   }
 
   public triggerCarpetRide() {
@@ -261,7 +261,7 @@ export class EventManager {
       // HIDE GROUND LAYERS
       this.scene.environmentManager.background.setFlightMode(true);
       
-      this.scene.showNoorMessage("تمسك جيداً! لنحلق فوق الغيوم! ✨", false);
+      this.scene.showNoorMessage("تمسك جيداً! لنحلق فوق الغيوم! ✨", false, 'greet');
       
       if (this.currentCarpet) {
           this.currentCarpet.destroy();
@@ -358,10 +358,13 @@ export class EventManager {
 
   private activateLevelGate() {
       if (this.currentGate && this.currentGate.active) {
-          this.scene.showNoorMessage("هذه بوابة الانتقال... ستقودنا إلى المدينة.", false);
+          this.scene.showNoorMessage("هذه بوابة الانتقال... ستقودنا إلى المدينة.", false, 'greet');
           this.scene.time.delayedCall(2000, () => {
               this.scene.hideNoorMessage();
               if (this.currentGate) this.currentGate.open();
+              if (this.scene.nurController) {
+                  this.scene.nurController.show('success', { position: 'top' });
+              }
               // Movie-like: character actually enters the magic gate (walk into the light)
               this.scene.time.delayedCall(700, () => {
                   this.playCharacterEnteringGate();
@@ -429,13 +432,13 @@ export class EventManager {
       
       this.scene.cameras.main.once('camerafadeincomplete', () => {
           this.scene.recordCityStageStart();
-          this.scene.showNoorMessage("مرحباً بك في مدينة العلم. 🏙️", false); 
+          this.scene.showNoorMessage("مرحباً بك في مدينة العلم. 🏙️", false, 'greet'); 
           
           this.scene.time.delayedCall(4000, () => {
-              this.scene.showNoorMessage("هنا، الركض وحده لا يكفي... عليك الانتباه للطرق العالية.", false);
+              this.scene.showNoorMessage("هنا، الركض وحده لا يكفي... عليك الانتباه للطرق العالية.", false, 'greet');
               
               this.scene.time.delayedCall(4500, () => {
-                  this.scene.showNoorMessage("كل طريق يحمل معرفة، وكل خطوة تقربك أكثر.", false);
+                  this.scene.showNoorMessage("كل طريق يحمل معرفة، وكل خطوة تقربك أكثر.", false, 'greet');
                   
                   this.scene.time.delayedCall(4000, () => {
                       this.scene.hideNoorMessage();
@@ -452,7 +455,7 @@ export class EventManager {
   }
 
   public continueLibraryTransition() {
-      this.scene.showNoorMessage("أهلاً بك في عالم المعرفة. 📚", false);
+      this.scene.showNoorMessage("أهلاً بك في عالم المعرفة. 📚", false, 'greet');
       this.scene.time.delayedCall(3500, () => {
           this.scene.hideNoorMessage();
           this.eventPhase = 'NONE';
@@ -471,7 +474,7 @@ export class EventManager {
       const groundY = height - 120; 
       this.libraryBuilding = new LibraryBuilding(this.scene, width + 400, groundY);
       this.scene.add.existing(this.libraryBuilding);
-      this.scene.showNoorMessage("انظر! بيت الحكمة! 🏛️", false);
+      this.scene.showNoorMessage("انظر! بيت الحكمة! 🏛️", false, 'greet');
   }
 
   private triggerLibraryArrival() {
@@ -536,7 +539,7 @@ export class EventManager {
       this.refugeTent = new BedouinTent(this.scene, width + 400, groundY);
       this.refugeTent.setDepth(15);
       this.scene.add.existing(this.refugeTent);
-      this.scene.showNoorMessage("انظر! خيمة بدوية! لنحتمي بها! ⛺", false);
+      this.scene.showNoorMessage("انظر! خيمة بدوية! لنحتمي بها! ⛺", false, 'greet');
   }
 
   private triggerSandstormArrival() {
@@ -567,7 +570,7 @@ export class EventManager {
 
   private startShelterInteraction() {
       if (this.refugeTent && this.refugeTent.active) this.refugeTent.setOccupied(true);
-      this.scene.showNoorMessage("الحمد لله! نحن في أمان هنا. 🏕️", false);
+      this.scene.showNoorMessage("الحمد لله! نحن في أمان هنا. 🏕️", false, 'greet');
       this.scene.replenishHealth(); 
       this.scene.time.delayedCall(3000, () => {
           this.triggerCutscene();
@@ -590,9 +593,9 @@ export class EventManager {
       this.scene.cameras.main.once('camerafadeincomplete', () => {
           this.scene.tweens.add({ targets: this.scene.player, alpha: 1, scale: 1, duration: 500 });
           this.scene.time.delayedCall(500, () => {
-              this.scene.showNoorMessage("لا تخف... هذه المدينة مليئة بالتحديات.", false);
+              this.scene.showNoorMessage("لا تخف... هذه المدينة مليئة بالتحديات.", false, 'greet');
               this.scene.time.delayedCall(4500, () => {
-                  this.scene.showNoorMessage("سأرافقك في هذه الرحلة وأرشدك في طريق العلم.", false);
+                  this.scene.showNoorMessage("سأرافقك في هذه الرحلة وأرشدك في طريق العلم.", false, 'greet');
                   this.scene.time.delayedCall(4500, () => {
                       this.scene.hideNoorMessage();
                       this.resumeRunFromShelter();

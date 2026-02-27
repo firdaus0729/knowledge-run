@@ -14,6 +14,7 @@ import { MerchantCart } from '../objects/MerchantCart';
 import { StackOfRugs } from '../objects/StackOfRugs';
 import { MagicCarpet } from '../objects/MagicCarpet'; 
 import { StreetCat } from '../objects/StreetCat'; // Import Cat
+import { NurController, type NurState } from '../objects/NurController';
 
 // Managers
 import { EnvironmentManager } from '../managers/EnvironmentManager';
@@ -39,6 +40,7 @@ export class MainScene extends Phaser.Scene {
   public spawnManager!: SpawnManager;
   public eventManager!: EventManager;
   public collisionManager!: CollisionManager;
+  public nurController!: NurController;
 
   // Visuals
   private sandstormOverlay!: Phaser.GameObjects.TileSprite;
@@ -95,9 +97,13 @@ export class MainScene extends Phaser.Scene {
 
   preload() {
       this.load.crossOrigin = 'anonymous';
-      this.load.image('noor_asset', 'https://ucarecdn.com/64926886-4015-49f7-9ebc-f3f206cf82e0/Gemini_Generated_Image_x273efx273efx273removebgpreview.png');
-      // Magical portal sound (optional – gate plays when opening)
       this.load.audio('portal_open', 'https://assets.mixkit.co/active_storage/sfx/2570-magical-sweep.mp3');
+      // Nur character images (5 expressions) – served from public/nur/
+      this.load.image('nur_img_greet', '/nur/nur_greet.png');
+      this.load.image('nur_img_encourage', '/nur/nur_encourage.png');
+      this.load.image('nur_img_think', '/nur/nur_think.png');
+      this.load.image('nur_img_warning', '/nur/nur_warning.png');
+      this.load.image('nur_img_success', '/nur/nur_success.png');
   }
 
   create() {
@@ -109,6 +115,7 @@ export class MainScene extends Phaser.Scene {
     this.spawnManager = new SpawnManager(this);
     this.eventManager = new EventManager(this);
     this.collisionManager = new CollisionManager(this);
+    this.nurController = new NurController(this);
 
     // 2. Generate Assets
     Player.generateTexture(this);
@@ -147,78 +154,18 @@ export class MainScene extends Phaser.Scene {
 
   /** Nur appears at center with welcome message, then fades out and run begins */
   private startNurIntro() {
-    const width = this.scale.width;
-    const height = this.scale.height;
-    const cx = width / 2;
-    const cy = height / 2;
+    const introMessage = 'رحلتنا اليوم ليست مجرد ركض… بل طريقٌ نحو الحكمة.';
+    this.nurController.show('greet', {
+      position: 'center',
+      message: introMessage
+    });
 
-    const container = this.add.container(cx, cy);
-    container.setDepth(200);
-
-    // Soft glow behind Nur
-    if (!this.textures.exists('noor_intro_glow')) {
-      const canvas = this.textures.createCanvas('noor_intro_glow', 400, 400);
-      if (canvas) {
-        const ctx = canvas.context;
-        const grd = ctx.createRadialGradient(200, 200, 50, 200, 200, 200);
-        grd.addColorStop(0, 'rgba(255, 215, 0, 0.35)');
-        grd.addColorStop(0.6, 'rgba(255, 180, 0, 0.15)');
-        grd.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = grd;
-        ctx.fillRect(0, 0, 400, 400);
-        canvas.refresh();
-      }
-    }
-    const glow = this.add.image(0, 0, 'noor_intro_glow');
-    container.add(glow);
-
-    // Nur character (center)
-    const useAsset = this.textures.exists('noor_asset');
-    const texKey = useAsset ? 'noor_asset' : 'noor_char';
-    const nurSprite = this.add.sprite(0, -80, texKey).setOrigin(0.5, 0.5);
-    const scale = Math.min(200 / (nurSprite.width || 1), 200 / (nurSprite.height || 1), 1.2);
-    nurSprite.setScale(scale);
-    container.add(nurSprite);
-
-    // Arabic welcome message (centered, clean, warm)
-    const msg = 'مرحباً بك في مدينة العلم…\nهذه الرحلة لن تكون سهلة،\nلكنني سأكون معك في كل خطوة.';
-    const text = this.add.text(0, 120, msg, {
-      fontFamily: 'Cairo',
-      fontSize: '22px',
-      color: '#f5f0e8',
-      align: 'center',
-      lineSpacing: 10,
-      wordWrap: { width: width * 0.75 }
-    }).setOrigin(0.5, 0);
-    container.add(text);
-
-    container.setAlpha(0);
-
-    // Calm cinematic: fade in
-    this.tweens.add({
-      targets: container,
-      alpha: 1,
-      duration: 1800,
-      ease: 'Sine.easeOut',
-      onComplete: () => {
-        // Hold for reading
-        this.time.delayedCall(5500, () => {
-          // Smooth fade out
-          this.tweens.add({
-            targets: container,
-            alpha: 0,
-            duration: 1500,
-            ease: 'Sine.easeIn',
-            onComplete: () => {
-              container.destroy();
-              this.eventManager.eventPhase = 'INTRO_RUN';
-              this.stageStartTime = this.time.now;
-              this.physics.resume();
-              this.player.play('run');
-            }
-          });
-        });
-      }
+    this.time.delayedCall(5500, () => {
+      this.nurController.hide();
+      this.eventManager.eventPhase = 'INTRO_RUN';
+      this.stageStartTime = this.time.now;
+      this.physics.resume();
+      this.player.play('run');
     });
   }
 
@@ -239,6 +186,7 @@ export class MainScene extends Phaser.Scene {
       wrongAnswers: this.wrongAnswersCount,
       timeSeconds: (this.time.now - this.stageStartTime) / 1000
     };
+    this.showNoorMessage('رائع! لقد أنهيت هذه المرحلة بنجاح.', false, 'success');
     this.pendingTransition = 'DESERT_END';
     this.syncUI();
   }
@@ -253,14 +201,17 @@ export class MainScene extends Phaser.Scene {
       wrongAnswers: this.wrongAnswersCount,
       timeSeconds: (this.time.now - this.cityStageStartTime) / 1000
     };
+    this.showNoorMessage('كل خطوة تقرّبك من نورٍ جديد.', false, 'success');
     this.pendingTransition = 'LIBRARY_END';
     this.syncUI();
   }
 
   public continueAfterStageResults() {
     if (this.pendingTransition === 'DESERT_END') {
+      if (this.nurController) this.nurController.hide();
       this.eventManager.continueDesertTransition();
     } else if (this.pendingTransition === 'LIBRARY_END') {
+      if (this.nurController) this.nurController.hide();
       this.eventManager.continueLibraryTransition();
     }
     this.stageResults = null;
@@ -455,7 +406,7 @@ export class MainScene extends Phaser.Scene {
       this.tweens.add({ targets: this.sandstormOverlay, alpha: 0.8, duration: 2500, ease: 'Sine.easeInOut' });
       this.triggerSandstormEffects(true);
       this.player.startStruggle();
-      this.showNoorMessage("يا إلهي! عاصفة رملية تقترب! 🌪️", false);
+      this.showNoorMessage('انتبه… القادم يحتاج تركيزًا.', false, 'warning');
   }
 
   public endSandstorm() {
@@ -486,7 +437,7 @@ export class MainScene extends Phaser.Scene {
           const dist = this.firstObstacleRef.x - this.player.x;
           if (dist < 150 && dist > 20) {
               this.guideFlags.firstJump = true;
-              this.showNoorMessage("اضغط للقفز وتجاوز العقبات! 🏃", true);
+              this.showNoorMessage("اضغط للقفز وتجاوز العقبات! 🏃", true, 'greet');
           }
       }
   }
@@ -502,6 +453,9 @@ export class MainScene extends Phaser.Scene {
       }
       if (this.sandstormEmitter) {
           this.sandstormEmitter.setPosition(width + 50, 0);
+      }
+      if (this.nurController) {
+          this.nurController.resize(width, height);
       }
       if (this.cinematicVignette) {
           this.cinematicVignette.setPosition(width / 2, height / 2);
@@ -543,7 +497,7 @@ export class MainScene extends Phaser.Scene {
       this.player.climbUp(targetY, () => {
           this.climbProgress = 0;
           this.eventManager.eventPhase = 'RECOVERY';
-          this.showNoorMessage("أحسنت! ذلك كان وشيكاً! 😅");
+          this.showNoorMessage("أحسنت! ذلك كان وشيكاً! 😅", false, 'encourage');
           this.time.delayedCall(1000, () => {
               this.setGameSpeed(1.0);
               this.eventManager.eventPhase = 'NONE';
@@ -614,16 +568,19 @@ export class MainScene extends Phaser.Scene {
       this.tweens.add({ targets: txt, y: y - 50, alpha: 0, duration: 800, onComplete: () => txt.destroy() });
   }
 
-  public showNoorMessage(text: string, isSoftPause: boolean = false) {
+  /** Show Nur and the message together. Pass optional NurState for expression; defaults to 'greet'. */
+  public showNoorMessage(text: string, isSoftPause: boolean = false, nurState: NurState = 'greet') {
       if (this.currentNoorMessage && !isSoftPause && this.currentNoorMessage.isSoftPause) return;
       if (this.messageTimer) this.messageTimer.remove();
 
       this.currentNoorMessage = { text, isSoftPause };
+      if (this.nurController) {
+          this.nurController.show(nurState, { position: 'top' });
+      }
       if (isSoftPause) {
           this.isSoftPaused = true;
           this.physics.world.timeScale = 10.0; 
       } else {
-          // Duration based on text length + importance
           const duration = this.eventManager.eventPhase.startsWith('INTRO') || this.eventManager.eventPhase.startsWith('LEVEL') ? 4000 : 3000;
           this.messageTimer = this.time.delayedCall(duration, () => this.hideNoorMessage());
       }
@@ -632,6 +589,7 @@ export class MainScene extends Phaser.Scene {
 
   public hideNoorMessage() {
       this.currentNoorMessage = null;
+      if (this.nurController) this.nurController.hide();
       this.syncUI();
   }
 
@@ -667,6 +625,7 @@ export class MainScene extends Phaser.Scene {
           this.correctAnswersCount++;
           this.activeQuestion = null; 
           this.eventManager.isEncounterOpening = true;
+          this.showNoorMessage('أحسنت! استمر، أنت تتقدم.', false, 'encourage');
           this.syncUI();
 
           if (this.eventManager.encounterType === 'GATE' && this.eventManager.currentGate) {
