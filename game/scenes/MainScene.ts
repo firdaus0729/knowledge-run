@@ -152,12 +152,14 @@ export class MainScene extends Phaser.Scene {
     this.startNurIntro();
   }
 
-  /** Nur appears at center with welcome message, then fades out and run begins */
+  /** Nur appears at center: old explanation prominent, new explanation as less prominent paragraph */
   private startNurIntro() {
-    const introMessage = 'رحلتنا اليوم ليست مجرد ركض… بل طريقٌ نحو الحكمة.';
+    const mainMessage = 'هيا… لنبدأ طريق المعرفة.';
+    const secondaryMessage = 'رحلتنا اليوم ليست مجرد ركض… بل طريقٌ نحو الحكمة.';
     this.nurController.show('greet', {
       position: 'center',
-      message: introMessage
+      message: mainMessage,
+      secondaryMessage
     });
 
     this.time.delayedCall(5500, () => {

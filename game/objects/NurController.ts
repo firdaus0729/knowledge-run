@@ -30,6 +30,7 @@ export class NurController {
   private container: Phaser.GameObjects.Container;
   private sprite: Phaser.GameObjects.Sprite;
   private messageText: Phaser.GameObjects.Text | null = null;
+  private secondaryMessageText: Phaser.GameObjects.Text | null = null;
   private goldBorder: Phaser.GameObjects.Graphics;
 
   private currentState: NurState | null = null;
@@ -103,6 +104,8 @@ export class NurController {
       position?: 'center' | 'top';
       duration?: number;
       message?: string;
+      /** Secondary paragraph (e.g. intro); rendered smaller and less prominent below main message */
+      secondaryMessage?: string;
     }
   ) {
     const { width, height } = this.scene.scale;
@@ -115,13 +118,18 @@ export class NurController {
       this.container.setPosition(width / 2, y);
     }
 
-    // Optional message text below Nur (single line or wrapped)
+    const wrapWidth = Math.min(width * 0.8, 420);
+
     if (this.messageText) {
       this.messageText.destroy();
       this.messageText = null;
     }
+    if (this.secondaryMessageText) {
+      this.secondaryMessageText.destroy();
+      this.secondaryMessageText = null;
+    }
+
     if (options?.message) {
-      const wrapWidth = Math.min(width * 0.8, 420);
       this.messageText = this.scene.add.text(0, NUR_MESSAGE_OFFSET_Y, options.message, {
         fontFamily: 'Cairo',
         fontSize: '22px',
@@ -131,6 +139,19 @@ export class NurController {
         wordWrap: { width: wrapWidth }
       }).setOrigin(0.5, 0);
       this.container.add(this.messageText);
+    }
+
+    if (options?.secondaryMessage) {
+      const secondaryY = NUR_MESSAGE_OFFSET_Y + 32;
+      this.secondaryMessageText = this.scene.add.text(0, secondaryY, options.secondaryMessage, {
+        fontFamily: 'Cairo',
+        fontSize: '17px',
+        color: 'rgba(245, 240, 232, 0.72)',
+        align: 'center',
+        lineSpacing: 6,
+        wordWrap: { width: wrapWidth }
+      }).setOrigin(0.5, 0);
+      this.container.add(this.secondaryMessageText);
     }
 
     // Update character display: image assets = set texture; procedural = play animation
@@ -192,6 +213,10 @@ export class NurController {
       this.messageText.destroy();
       this.messageText = null;
     }
+    if (this.secondaryMessageText) {
+      this.secondaryMessageText.destroy();
+      this.secondaryMessageText = null;
+    }
 
     this.scene.tweens.add({
       targets: this.container,
@@ -219,6 +244,9 @@ export class NurController {
     }
     if (this.messageText) {
       this.messageText.setWordWrapWidth(Math.min(width * 0.8, 420));
+    }
+    if (this.secondaryMessageText) {
+      this.secondaryMessageText.setWordWrapWidth(Math.min(width * 0.8, 420));
     }
   }
 
