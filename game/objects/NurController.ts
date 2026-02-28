@@ -17,16 +17,16 @@ const NUR_IMAGE_KEYS: Record<NurState, string> = {
   success: 'nur_img_success'
 };
 
-/** Nur display size (150x150) and gold ring */
-const NUR_DISPLAY_SIZE = 150;
-const NUR_BORDER_RADIUS = 85; // Slightly outside 150x150 (half = 75)
+/** Nur display size and gold ring (slightly smaller for a gentler look) */
+const NUR_DISPLAY_SIZE = 128;
+const NUR_BORDER_RADIUS = 70; // Slightly outside 128x128 (half = 64)
 /** Gold circle center (vertical). Kept slightly above so circle frames from above. */
 const NUR_CIRCLE_OFFSET_Y = 8;
 /** Sprite center below circle so raised hand stays inside the circle */
 const NUR_SPRITE_OFFSET_Y = 14;
-const NUR_MESSAGE_OFFSET_Y = 92; // Below 150px image so text does not overlap
-/** When position is 'top': place Nur so gap to speech bubble (top-36, ~50px tall) is ~5px. Bubble bottom ≈ 194px, so Nur top = 199px, container y = 199 + 75 + 10 = 284. */
-const NUR_TOP_Y_PX = 284;
+const NUR_MESSAGE_OFFSET_Y = 78; // Below 128px image so text does not overlap
+/** When position is 'top': place Nur so gap to speech bubble is ~5px. */
+const NUR_TOP_Y_PX = 278;
 
 export class NurController {
   private scene: Phaser.Scene;
@@ -168,21 +168,23 @@ export class NurController {
       this.currentState = state;
     }
 
-    // Floating idle tween (slightly more visible vertical motion)
+    // Soft floating idle: subtle vertical movement only (smooth and lightweight)
     if (this.floatTween) {
       this.floatTween.stop();
       this.floatTween = null;
     }
+    const floatAmplitude = 3;
+    const floatDuration = 2800;
     this.floatTween = this.scene.tweens.add({
       targets: this.container,
-      y: this.container.y - 6,
-      duration: 2200,
+      y: this.container.y - floatAmplitude,
+      duration: floatDuration,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
     });
 
-    // Gentle breathing / body motion on the sprite itself
+    // Optional very subtle breath on sprite (kept minimal for performance)
     if (this.breathTween) {
       this.breathTween.stop();
       this.breathTween = null;
@@ -192,10 +194,10 @@ export class NurController {
     const baseY = this.sprite.y;
     this.breathTween = this.scene.tweens.add({
       targets: this.sprite,
-      scaleX: baseScaleX * 1.03,
-      scaleY: baseScaleY * 0.97,
-      y: baseY - 3,
-      duration: 2200,
+      scaleX: baseScaleX * 1.01,
+      scaleY: baseScaleY * 0.99,
+      y: baseY - 1,
+      duration: floatDuration,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
