@@ -13,10 +13,20 @@ interface GameUIProps {
 export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, onMessageDismiss }) => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showResult, setShowResult] = useState<'correct' | 'wrong' | null>(null);
-  
+
+  // Step 2: smooth distance display (lerp toward game state)
+  const [displayDistance, setDisplayDistance] = useState(0);
+  const distanceRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+
   // Noor Guide State
   const [showNoor, setShowNoor] = useState(false);
   const [noorText, setNoorText] = useState('');
+
+  // Stage title: optional fade-out before clearing (keep title visible for fade-out)
+  const [stageTitleDisplay, setStageTitleDisplay] = useState<string | null>(null);
+  const [stageTitleFadeOut, setStageTitleFadeOut] = useState(false);
+  const stageTitleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Handle Noor Messages
   useEffect(() => {
@@ -35,6 +45,54 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
         setShowResult(null);
     }
   }, [gameState.activeQuestion]);
+
+  // Step 2: smooth distance lerp (no jumps)
+  useEffect(() => {
+    const target = gameState.distance ?? 0;
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    const start = distanceRef.current;
+    const startTime = performance.now();
+    const duration = 120;
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      const value = start + (target - start) * eased;
+      distanceRef.current = value;
+      setDisplayDistance(value);
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [gameState.distance]);
+
+  // Step 2: stage title – show on set, fade out when cleared
+  useEffect(() => {
+    if (gameState.stageTitle) {
+      if (stageTitleTimeoutRef.current) {
+        clearTimeout(stageTitleTimeoutRef.current);
+        stageTitleTimeoutRef.current = null;
+      }
+      setStageTitleDisplay(gameState.stageTitle);
+      setStageTitleFadeOut(false);
+    } else if (stageTitleDisplay) {
+      setStageTitleFadeOut(true);
+      stageTitleTimeoutRef.current = setTimeout(() => {
+        stageTitleTimeoutRef.current = null;
+        setStageTitleDisplay(null);
+        setStageTitleFadeOut(false);
+      }, 500);
+    }
+    return () => {
+      if (stageTitleTimeoutRef.current) {
+        clearTimeout(stageTitleTimeoutRef.current);
+        stageTitleTimeoutRef.current = null;
+      }
+    };
+  }, [gameState.stageTitle, stageTitleDisplay]);
 
   const handleOptionClick = (index: number) => {
       if (showResult === 'correct' || !gameState.activeQuestion) return;
@@ -64,9 +122,25 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
       }
   };
 
+  const progressPercent = Math.min(100, gameState.stageProgressPercent ?? 0);
+  const isProgressComplete = progressPercent >= 100;
+
   return (
     <div className="font-['Cairo']" dir="rtl">
-      
+
+      {/* Step 2: Stage title overlay (Arabic) – fade in, then fade out when cleared */}
+      {stageTitleDisplay && (
+        <div
+          className={`absolute inset-0 z-40 flex items-center justify-center pointer-events-none transition-opacity duration-500 ${
+            stageTitleFadeOut ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
+          <p className="text-[#ffd700] text-2xl md:text-3xl font-black drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] animate-in fade-in duration-500">
+            {stageTitleDisplay}
+          </p>
+        </div>
+      )}
+
       {/* Nur guidance message – sits below Nur (drawn in Phaser at ~26% from top) */}
       <div 
         className={`absolute top-36 left-0 right-0 z-30 flex justify-center pointer-events-none transition-all duration-500 transform ${showNoor ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}`}
@@ -120,46 +194,58 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
 
       {/* 3. GAMEPLAY UI */}
       <div className={`absolute inset-0 pointer-events-none flex flex-col justify-between p-4 md:p-6 z-10 transition-opacity duration-500 ${gameState.activeMessage ? 'opacity-0' : 'opacity-100'}`}>
-        
-        {/* Top Bar */}
-        <div className={`flex justify-between items-start w-full transition-opacity duration-300 ${gameState.isGameOver ? 'opacity-0' : 'opacity-100'}`}>
-          {/* Score / Distance */}
-          <div className="flex flex-col items-start">
-             <div className="bg-black/40 backdrop-blur-md px-4 py-2 md:px-6 md:py-3 rounded-xl md:rounded-2xl border border-white/10 flex items-center gap-3 md:gap-4 shadow-lg">
-               <div className="flex flex-col items-center leading-tight text-yellow-400">
-                  <span className="text-yellow-400/60 text-[8px] md:text-[10px] uppercase tracking-widest font-bold">النجوم</span>
-                  <span className="text-xl md:text-2xl font-black">{gameState.stars}</span>
-               </div>
-               <div className="w-px h-8 md:h-10 bg-white/10 mx-1"></div>
-               <div className="flex flex-col items-center leading-tight">
-                  <span className="text-white/60 text-[8px] md:text-[10px] uppercase tracking-widest font-bold">المسافة</span>
-                  <span className="text-white text-xl md:text-2xl font-black font-mono tracking-tighter">{Math.floor(gameState.distance)}<span className="text-xs md:text-sm text-white/50 mr-1">م</span></span>
-               </div>
-             </div>
-          </div>
 
-          {/* Hearts */}
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-1 md:gap-2 flex-row-reverse">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`w-6 h-6 md:w-8 md:h-8 transform transition-all duration-300 ${
-                    i < gameState.hearts ? 'scale-110' : 'scale-90 opacity-30 grayscale'
-                  }`}
-                >
-                  <svg 
-                    viewBox="0 0 24 24" 
-                    fill="currentColor" 
-                    className={i < gameState.hearts ? 'text-red-500' : 'text-gray-500'}
-                    style={{ 
-                      filter: i < gameState.hearts ? 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.8))' : 'none'
-                    }}
-                  >
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                  </svg>
+        {/* Step 2: Progress bar (top), then stars (left) / distance + hearts (right) */}
+        <div className={`w-full transition-opacity duration-300 ${gameState.isGameOver ? 'opacity-0' : 'opacity-100'}`}>
+          {/* Progress bar – full width, 0–100% from distance */}
+          <div className="relative w-full h-2 md:h-2.5 rounded-full bg-black/50 border border-white/10 overflow-hidden mb-3">
+            <div
+              className="h-full bg-gradient-to-r from-amber-600 to-[#ffd700] transition-all duration-150 ease-out rounded-full"
+              style={{ width: `${progressPercent}%` }}
+            />
+            {isProgressComplete && (
+              <div className="absolute inset-0 rounded-full bg-[#ffd700]/20 animate-pulse pointer-events-none" style={{ boxShadow: '0 0 10px rgba(255,215,0,0.5)' }} />
+            )}
+          </div>
+          <div className="flex justify-between items-start w-full">
+            {/* Stars – top left */}
+            <div className="bg-black/40 backdrop-blur-md px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-white/10 shadow-lg">
+              <div className="flex flex-col items-center leading-tight text-yellow-400">
+                <span className="text-yellow-400/60 text-[8px] md:text-[10px] uppercase tracking-widest font-bold">النجوم</span>
+                <span className="text-lg md:text-xl font-black">{gameState.stars}</span>
+              </div>
+            </div>
+            {/* Distance + Hearts – top right */}
+            <div className="flex items-center gap-3">
+              <div className="bg-black/40 backdrop-blur-md px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-white/10 shadow-lg">
+                <div className="flex flex-col items-center leading-tight">
+                  <span className="text-white/60 text-[8px] md:text-[10px] uppercase tracking-widest font-bold">المسافة</span>
+                  <span className="text-white text-lg md:text-xl font-black font-mono tracking-tighter">
+                    {Math.floor(displayDistance)}<span className="text-xs text-white/50 mr-0.5">م</span>
+                  </span>
                 </div>
-              ))}
+              </div>
+              <div className="flex gap-1 md:gap-1.5 flex-row-reverse">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-5 h-5 md:w-6 md:h-6 transform transition-all duration-300 ${
+                      i < gameState.hearts ? 'scale-110' : 'scale-90 opacity-30 grayscale'
+                    }`}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className={i < gameState.hearts ? 'text-red-500' : 'text-gray-500'}
+                      style={{
+                        filter: i < gameState.hearts ? 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.8))' : 'none'
+                      }}
+                    >
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

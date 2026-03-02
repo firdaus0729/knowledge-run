@@ -31,6 +31,13 @@ export interface GameState {
   climbProgress?: number; // 0 to 100
   /** End-of-stage results (desert / library); show StageResultsUI and call onContinue */
   stageResults?: StageResultsData | null;
+  // Step 2 – Progress system
+  /** 0–100, from actual distance / stage length */
+  stageProgressPercent?: number;
+  /** Current stage (1 = desert, 2 = city) */
+  currentStage?: number;
+  /** Stage title overlay (Arabic); show 2–3 s then fade out */
+  stageTitle?: string | null;
 }
 
 export interface Question {

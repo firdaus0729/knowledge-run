@@ -39,8 +39,8 @@ export class EnvironmentManager {
     this.checkZoneProgression();
   }
 
-  /** Distance into city before library event (player must feel deeper in the city) */
-  private readonly LIBRARY_TRIGGER_DISTANCE = 1400;
+  /** Distance in meters into city before library event (tunable) */
+  private readonly LIBRARY_TRIGGER_DISTANCE = 400;
 
   private checkZoneProgression() {
       if (this.currentZone === 'CITY' && !this.hasTriggeredLibrary) {

@@ -25,12 +25,13 @@ export class SpawnManager {
   public cats!: Phaser.GameObjects.Group;
 
   private spawnTimer: number = 0;
-  public nextSpawnTime: number = 100; 
-  
-  private distanceSinceLastHeart: number = 0;
-  private distanceSinceLastShield: number = 0;
-  private readonly HEART_SPAWN_DISTANCE = 1200;
-  private readonly SHIELD_SPAWN_DISTANCE = 1500;
+  public nextSpawnTime: number = 100;
+
+  /** Step 2: spawn intervals in meters (runDistance) */
+  private lastHeartSpawnAt: number = 0;
+  private lastShieldSpawnAt: number = 0;
+  private readonly HEART_SPAWN_DISTANCE_M = 80;
+  private readonly SHIELD_SPAWN_DISTANCE_M = 100;
   
   private spawnCount: number = 0;
   
@@ -79,22 +80,19 @@ export class SpawnManager {
     updateGroup(this.marketAwnings);
     updateGroup(this.cats);
 
-    this.distanceSinceLastHeart += frameMove * 0.05;
-    this.distanceSinceLastShield += frameMove * 0.05;
-
-    if (this.distanceSinceLastHeart >= this.HEART_SPAWN_DISTANCE) {
-        this.distanceSinceLastHeart = 0;
+    const runDistance = this.scene.getRunDistance();
+    if (runDistance - this.lastHeartSpawnAt >= this.HEART_SPAWN_DISTANCE_M) {
+        this.lastHeartSpawnAt = runDistance;
         const hY = this.scene.scale.height - Phaser.Math.Between(150, 400);
         this.heartsGroup.add(new Heart(this.scene, this.scene.scale.width + 100, hY));
     }
-    if (this.distanceSinceLastShield >= this.SHIELD_SPAWN_DISTANCE) {
-        this.distanceSinceLastShield = 0;
+    if (runDistance - this.lastShieldSpawnAt >= this.SHIELD_SPAWN_DISTANCE_M) {
+        this.lastShieldSpawnAt = runDistance;
         const sY = this.scene.scale.height - Phaser.Math.Between(150, 400);
         this.shieldsGroup.add(new ShieldItem(this.scene, this.scene.scale.width + 100, sY));
     }
 
     // Desert (INTRO_RUN): show obstacles, stars, boxes etc. from the very start of the run
-    const runDistance = this.scene.getRunDistance();
     const evt = this.scene.eventManager;
     const isDesertRun = evt.eventPhase === 'INTRO_RUN' && runDistance >= 0;
     const spawningAllowed = evt.isSpawningAllowed();
@@ -546,8 +544,8 @@ export class SpawnManager {
   public reset() {
       this.spawnTimer = 0;
       this.nextSpawnTime = 100;
-      this.distanceSinceLastHeart = 0;
-      this.distanceSinceLastShield = 0;
+      this.lastHeartSpawnAt = 0;
+      this.lastShieldSpawnAt = 0;
       this.spawnCount = 0;
       this.spawnQueue = [];
       this.lastSpawnType = 'NONE';

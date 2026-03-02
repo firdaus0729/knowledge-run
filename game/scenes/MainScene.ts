@@ -1,6 +1,6 @@
 
 import Phaser from 'phaser';
-import { PHYSICS } from '../../constants';
+import { PHYSICS, PROGRESS } from '../../constants';
 import { Player } from '../objects/Player';
 import { Obstacle } from '../objects/Obstacle';
 import { Question, GameState, NoorMessage, StageResultsData } from '../../types';
@@ -78,6 +78,9 @@ export class MainScene extends Phaser.Scene {
   
   // Phase 4: Climbing
   public climbProgress: number = 0;
+
+  // Step 2 – Progress: stage title overlay (Arabic), cleared after 2–3 s
+  private stageTitle: string | null = null;
   
   // Guidance Flags
   private guideFlags = {
@@ -167,6 +170,13 @@ export class MainScene extends Phaser.Scene {
       this.stageStartTime = this.time.now;
       this.physics.resume();
       this.player.play('run');
+      // Step 2: show stage title 2.5 s, then clear (no gameplay pause)
+      this.stageTitle = 'المرحلة 1 – طريق الصحراء';
+      this.syncUI();
+      this.time.delayedCall(2500, () => {
+        this.stageTitle = null;
+        this.syncUI();
+      });
     });
   }
 
@@ -243,6 +253,7 @@ export class MainScene extends Phaser.Scene {
     this.wrongAnswersCount = 0;
     this.stageResults = null;
     this.pendingTransition = null;
+    this.stageTitle = null;
   }
 
   update(time: number, delta: number) {
@@ -259,7 +270,7 @@ export class MainScene extends Phaser.Scene {
     const frameMove = (currentSpeed * dt); 
 
     if (currentSpeed > 0) {
-        this.runDistance += frameMove * 0.05; 
+        this.runDistance += frameMove * PROGRESS.DISTANCE_SCALE;
     }
     
     const phase = this.eventManager.eventPhase;
@@ -672,6 +683,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private syncUI() {
+      const progressPercent = this.getStageProgressPercent();
       this.onScoreUpdate({
           distance: this.runDistance,
           stars: this.collectedStarsCount,
@@ -682,7 +694,30 @@ export class MainScene extends Phaser.Scene {
           noorMessage: this.currentNoorMessage,
           isHanging: this.player?.isHanging || false,
           climbProgress: this.climbProgress,
-          stageResults: this.stageResults || undefined
+          stageResults: this.stageResults || undefined,
+          stageProgressPercent: progressPercent,
+          currentStage: this.currentStage,
+          stageTitle: this.stageTitle ?? undefined
+      });
+  }
+
+  /** 0–100 from actual distance / stage length (Step 2 progress bar). */
+  private getStageProgressPercent(): number {
+      if (this.currentStage >= 2 && this.cityStartDistanceForStats >= 0) {
+          const distInStage = this.runDistance - this.cityStartDistanceForStats;
+          return Math.min(100, (distInStage / PROGRESS.STAGE_2_LENGTH_M) * 100);
+      }
+      return Math.min(100, (this.runDistance / PROGRESS.STAGE_1_LENGTH_M) * 100);
+  }
+
+  /** Show stage title for durationMs, then clear and call onComplete (Step 2). */
+  public showStageTitle(title: string, durationMs: number, onComplete: () => void) {
+      this.stageTitle = title;
+      this.syncUI();
+      this.time.delayedCall(durationMs, () => {
+          this.stageTitle = null;
+          this.syncUI();
+          onComplete();
       });
   }
 

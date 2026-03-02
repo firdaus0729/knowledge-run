@@ -35,16 +35,22 @@ function App() {
     if (gameRef.current) return;
 
     const game = createGame('game-container', (data) => {
+      const d = data as Record<string, unknown>;
       setGameState(prev => ({
         ...prev,
-        distance: data.distance !== undefined ? data.distance : prev.distance,
-        stars: data.stars !== undefined ? data.stars : prev.stars,
-        hearts: (data as any).hearts !== undefined ? (data as any).hearts : prev.hearts,
-        isGameOver: (data as any).isGameOver !== undefined ? (data as any).isGameOver : prev.isGameOver,
-        activeQuestion: (data as any).activeQuestion,
-        activeMessage: (data as any).activeMessage,
-        noorMessage: (data as any).noorMessage,
-        stageResults: (data as any).stageResults
+        distance: d.distance !== undefined ? d.distance as number : prev.distance,
+        stars: d.stars !== undefined ? d.stars as number : prev.stars,
+        hearts: d.hearts !== undefined ? d.hearts as number : prev.hearts,
+        isGameOver: d.isGameOver !== undefined ? d.isGameOver as boolean : prev.isGameOver,
+        activeQuestion: d.activeQuestion as GameState['activeQuestion'],
+        activeMessage: d.activeMessage as GameState['activeMessage'],
+        noorMessage: d.noorMessage as GameState['noorMessage'],
+        stageResults: d.stageResults as GameState['stageResults'],
+        isHanging: d.isHanging !== undefined ? d.isHanging as boolean : prev.isHanging,
+        climbProgress: d.climbProgress !== undefined ? d.climbProgress as number : prev.climbProgress,
+        stageProgressPercent: d.stageProgressPercent !== undefined ? d.stageProgressPercent as number : prev.stageProgressPercent,
+        currentStage: d.currentStage !== undefined ? d.currentStage as number : prev.currentStage,
+        stageTitle: d.stageTitle !== undefined ? d.stageTitle as string | null : prev.stageTitle
       }));
     });
 

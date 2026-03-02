@@ -1,5 +1,6 @@
 
 import Phaser from 'phaser';
+import { PROGRESS } from '../../constants';
 import { MainScene } from '../scenes/MainScene';
 import { MagicGate } from '../objects/MagicGate';
 import { MagicChest } from '../objects/MagicChest';
@@ -40,16 +41,17 @@ export class EventManager {
   // Intro Specific
   private introTimer: number = 0;
 
-  // Level Progression
-  private readonly STAGE_1_LENGTH = 1500;
-  /** Distance to run before sandstorm hits suddenly */
-  private readonly SANDSTORM_TRIGGER_DISTANCE = 500; 
+  // Level Progression (Step 2: distances in meters)
+  private readonly STAGE_1_LENGTH = PROGRESS.STAGE_1_LENGTH_M;
+  /** Distance in meters before sandstorm (early in stage 1) */
+  private readonly SANDSTORM_TRIGGER_DISTANCE = 150;
   private levelEndTriggered: boolean = false;
-  
-  // Thresholds
+
+  /** Distance in meters before next chest spawn (tunable) */
+  private readonly CHEST_INTERVAL_M = 150;
   private nextChestDistance: number = 0;
   private hasSpawnedChestSegment: boolean = false;
-  
+
   // Sandstorm
   private sandstormTriggered: boolean = false;
   private sandstormTimer: number = 0;
@@ -59,10 +61,11 @@ export class EventManager {
   private libraryStartDistance: number = 0;
   private libraryEventTriggered: boolean = false;
   private carpetTimer: number = 0;
-  private hasTransitionedToCity: boolean = false; 
+  private hasTransitionedToCity: boolean = false;
 
-  // Carpet Logic
-  private readonly CARPET_SPAWN_DIST = 1300;
+  /** Distance in meters within library zone before carpet spawns (tunable) */
+  public readonly STAGE_2_LENGTH_M = PROGRESS.STAGE_2_LENGTH_M;
+  private readonly CARPET_SPAWN_DIST_M = 400;
   private carpetMissed: boolean = false;
   private nextCarpetSpawnPos: number = 0;
   
@@ -71,7 +74,7 @@ export class EventManager {
 
   constructor(scene: MainScene) {
     this.scene = scene;
-    this.calculateNextChestDistance(150);
+    this.calculateNextChestDistance(PROGRESS.STAGE_1_LENGTH_M);
   }
 
   public update(frameMove: number, delta: number) {
@@ -214,7 +217,7 @@ export class EventManager {
           const distInLibrary = this.scene.getRunDistance() - this.libraryStartDistance;
           
           // Case 1: Initial Spawn
-          if (!this.libraryEventTriggered && distInLibrary > this.CARPET_SPAWN_DIST) {
+          if (!this.libraryEventTriggered && distInLibrary > this.CARPET_SPAWN_DIST_M) {
               this.libraryEventTriggered = true;
               this.spawnMagicCarpet();
           }
@@ -230,7 +233,7 @@ export class EventManager {
   private handleCarpetMiss() {
       // Called when carpet destroys itself without being collected
       this.carpetMissed = true;
-      this.nextCarpetSpawnPos = this.scene.getRunDistance() + 400; // Try again in 400m
+      this.nextCarpetSpawnPos = this.scene.getRunDistance() + this.CARPET_SPAWN_DIST_M;
       this.encounterType = 'NONE';
       this.scene.showNoorMessage("لقد فاتنا البساط! لا تقلق، سيظهر مرة أخرى.", false, 'greet');
   }
@@ -316,7 +319,7 @@ export class EventManager {
       // PRE-CARPET SILENCE (Before initial spawn only)
       if (this.scene.environmentManager.getZone() === 'LIBRARY' && !this.libraryEventTriggered && !this.carpetMissed) {
           const distInLibrary = this.scene.getRunDistance() - this.libraryStartDistance;
-          if (distInLibrary > this.CARPET_SPAWN_DIST - 250) {
+          if (distInLibrary > this.CARPET_SPAWN_DIST_M - 100) {
               return false;
           }
       }
@@ -427,22 +430,24 @@ export class EventManager {
 
   private beginStage2Intro() {
       this.eventPhase = 'STAGE_2_INTRO';
-      this.scene.setGameSpeed(0); 
+      this.scene.setGameSpeed(0);
       this.scene.cameras.main.fadeIn(2000);
-      
+
       this.scene.cameras.main.once('camerafadeincomplete', () => {
           this.scene.recordCityStageStart();
-          // City intro – new multiline text
-          this.scene.showNoorMessage("مرحبًا بك في مدينة العلم…\nقد لا تكون الرحلة سهلة،\nلكنني سأكون معك في كل خطوة.", false, 'greet'); 
-          
-          this.scene.time.delayedCall(5000, () => {
-              this.scene.hideNoorMessage();
-              this.eventPhase = 'NONE';
-              this.isEncounterActive = false;
-              this.encounterType = 'NONE';
-              
-              this.scene.setGameSpeed(1.0);
-              this.scene.player.play('run');
+          // Step 2: show stage title first (2.5 s), then Noor message
+          this.scene.showStageTitle('المرحلة 2 – مدخل المدينة', 2500, () => {
+              this.scene.showNoorMessage("مرحبًا بك في مدينة العلم…\nقد لا تكون الرحلة سهلة،\nلكنني سأكون معك في كل خطوة.", false, 'greet');
+
+              this.scene.time.delayedCall(5000, () => {
+                  this.scene.hideNoorMessage();
+                  this.eventPhase = 'NONE';
+                  this.isEncounterActive = false;
+                  this.encounterType = 'NONE';
+
+                  this.scene.setGameSpeed(1.0);
+                  this.scene.player.play('run');
+              });
           });
       });
   }
@@ -620,7 +625,7 @@ export class EventManager {
       if (!this.hasSpawnedChestSegment && this.scene.getRunDistance() >= this.nextChestDistance && this.queuedEncounter === 'NONE') {
           this.hasSpawnedChestSegment = true;
           this.queuedEncounter = 'CHEST';
-          this.nextChestDistance = this.scene.getRunDistance() + 1500;
+          this.nextChestDistance = this.scene.getRunDistance() + this.CHEST_INTERVAL_M;
       }
   }
 
