@@ -170,7 +170,7 @@ export class MainScene extends Phaser.Scene {
       this.stageStartTime = this.time.now;
       this.physics.resume();
       this.player.play('run');
-      // Step 2: show stage title 2.5 s, then clear (no gameplay pause)
+      // Step 2: stage title temporary intro only (2–3 s then fade out)
       this.stageTitle = 'المرحلة 1 – طريق الصحراء';
       this.syncUI();
       this.time.delayedCall(2500, () => {
@@ -262,7 +262,7 @@ export class MainScene extends Phaser.Scene {
     if (this.activeMessage || this.activeQuestion) return;
     
     const timeScale = this.physics.world.timeScale;
-    const scaledDelta = delta / timeScale; 
+    const scaledDelta = delta * timeScale; // * so that timeScale < 1 slows the game down 
     const dt = scaledDelta / 1000;
 
     this.updateSpeed(scaledDelta, dt);
@@ -414,12 +414,29 @@ export class MainScene extends Phaser.Scene {
   }
 
   public startSandstorm() {
+      // If a question was open (chest encounter), clear it and resume physics so we don't get stuck
+      this.clearQuestionAndResumePhysics();
+      this.eventManager.isEncounterActive = false;
+      this.eventManager.encounterType = 'NONE';
+      this.eventManager.isEncounterOpening = false;
+
       this.tweens.add({ targets: this, speedModifier: 0.3, duration: 2000, ease: 'Power2' });
       this.tweens.add({ targets: this.sandstormOverlay, alpha: 0.8, duration: 2500, ease: 'Sine.easeInOut' });
       this.triggerSandstormEffects(true);
       this.player.startStruggle();
+      // Remove all obstacles, stars, chests, lives, shields, etc. during sandstorm (none left on screen)
+      this.spawnManager.removeAllSpawned();
+      this.eventManager.removeEncounterObjects();
       // Sandstorm warning – clearer that a sandstorm is coming
       this.showNoorMessage('انتبه… عاصفة رملية قادمة!', false, 'warning');
+  }
+
+  /** Clear question overlay and resume physics (e.g. when sandstorm interrupts a chest encounter). */
+  public clearQuestionAndResumePhysics(): void {
+      this.activeQuestion = null;
+      if (this.physics.world.isPaused) this.physics.resume();
+      this.player.anims.resume();
+      this.syncUI();
   }
 
   public endSandstorm() {
@@ -526,6 +543,15 @@ export class MainScene extends Phaser.Scene {
       return this.speedModifier;
   }
 
+  /** Called by Player when they execute a jump – dismiss first-jump soft pause so we never slow again. */
+  public onPlayerJump(): void {
+      if (this.isSoftPaused && this.currentNoorMessage?.isSoftPause) {
+          this.isSoftPaused = false;
+          this.physics.world.timeScale = 1.0;
+          this.hideNoorMessage();
+      }
+  }
+
   public getRunDistance(): number { return this.runDistance; }
   public getCurrentStage(): number { return this.currentStage; }
   
@@ -592,7 +618,7 @@ export class MainScene extends Phaser.Scene {
       }
       if (isSoftPause) {
           this.isSoftPaused = true;
-          this.physics.world.timeScale = 10.0; 
+          this.physics.world.timeScale = 0.15; // Slow down so player can read the jump hint (first time only)
       } else {
           const duration = this.eventManager.eventPhase.startsWith('INTRO') || this.eventManager.eventPhase.startsWith('LEVEL') ? 4000 : 3000;
           this.messageTimer = this.time.delayedCall(duration, () => this.hideNoorMessage());
@@ -697,7 +723,7 @@ export class MainScene extends Phaser.Scene {
           stageResults: this.stageResults || undefined,
           stageProgressPercent: progressPercent,
           currentStage: this.currentStage,
-          stageTitle: this.stageTitle ?? undefined
+          stageTitle: this.stageTitle === null ? null : this.stageTitle
       });
   }
 

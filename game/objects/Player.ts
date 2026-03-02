@@ -516,6 +516,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.dustEmitter.setPosition(this.x, this.y + 35);
     this.dustEmitter.explode(8);
     this.scene.tweens.add({ targets: this, scaleX: 0.9, scaleY: 1.1, duration: 200, yoyo: true, ease: 'Sine.easeOut' });
+    // Dismiss first-jump soft pause so we never slow down again after the first jump
+    const scene = this.scene as { onPlayerJump?: () => void };
+    if (typeof scene.onPlayerJump === 'function') scene.onPlayerJump();
   }
 
   private createGhost() {

@@ -50,11 +50,23 @@ export class SpawnManager {
     this.obstacles = this.scene.add.group({ classType: Obstacle, runChildUpdate: false });
     this.merchantCarts = this.scene.add.group({ classType: MerchantCart, runChildUpdate: false });
     this.rugStacks = this.scene.add.group({ classType: StackOfRugs, runChildUpdate: false });
-    this.marketAwnings = this.scene.add.group({ classType: MarketAwning, runChildUpdate: false }); 
+    this.marketAwnings = this.scene.add.group({ classType: MarketAwning, runChildUpdate: false });
     this.cats = this.scene.add.group({ classType: StreetCat, runChildUpdate: false });
-    
+
     MarketAwning.generateTextures(this.scene);
     StreetCat.generateTexture(this.scene);
+  }
+
+  /** Remove (destroy) all spawned elements when sandstorm starts. New ones will spawn after the storm. */
+  public removeAllSpawned(): void {
+    this.stars.clear(true, true);
+    this.heartsGroup.clear(true, true);
+    this.shieldsGroup.clear(true, true);
+    this.obstacles.clear(true, true);
+    this.merchantCarts.clear(true, true);
+    this.rugStacks.clear(true, true);
+    this.marketAwnings.clear(true, true);
+    this.cats.clear(true, true);
   }
 
   public update(delta: number, frameMove: number, currentSpeed: number) {
@@ -132,11 +144,22 @@ export class SpawnManager {
           return;
       }
 
-      // --- 3. TUTORIAL SEQUENCE ---
+      const zone = this.scene.environmentManager.getZone();
+      const isDesertStart = (this.scene.eventManager.eventPhase === 'INTRO_RUN' || zone === 'DESERT' || zone === 'TRANSITION') && this.spawnCount < 2;
+
+      // --- 3. DESERT FROM START: use random patterns immediately (obstacles + stars + variety), no empty intro
+      if (isDesertStart) {
+          this.spawnRandomObstacle(x, groundY, currentSpeed);
+          if (this.spawnCount === 0) this.scene.firstObstacleRef = this.obstacles.getLast(true);
+          this.spawnCount = Math.max(this.spawnCount, 2);
+          return;
+      }
+
+      // --- 4. TUTORIAL SEQUENCE (non-desert only, or after desert start) ---
       if (this.spawnCount === 0) {
           this.spawnSpecific('SINGLE_ROCK', x, groundY);
           this.scene.firstObstacleRef = this.obstacles.getLast(true);
-          this.nextSpawnTime = 1200; 
+          this.nextSpawnTime = 1200;
           this.spawnCount++;
           return;
       }
@@ -147,7 +170,7 @@ export class SpawnManager {
           return;
       }
 
-      // --- 4. RANDOM PATTERN GENERATION ---
+      // --- 5. RANDOM PATTERN GENERATION ---
       this.spawnRandomObstacle(x, groundY, currentSpeed);
   }
 

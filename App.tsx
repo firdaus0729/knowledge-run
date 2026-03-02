@@ -50,7 +50,7 @@ function App() {
         climbProgress: d.climbProgress !== undefined ? d.climbProgress as number : prev.climbProgress,
         stageProgressPercent: d.stageProgressPercent !== undefined ? d.stageProgressPercent as number : prev.stageProgressPercent,
         currentStage: d.currentStage !== undefined ? d.currentStage as number : prev.currentStage,
-        stageTitle: d.stageTitle !== undefined ? d.stageTitle as string | null : prev.stageTitle
+        stageTitle: 'stageTitle' in d ? (d.stageTitle as string | null) : prev.stageTitle
       }));
     });
 

@@ -43,8 +43,8 @@ export class EventManager {
 
   // Level Progression (Step 2: distances in meters)
   private readonly STAGE_1_LENGTH = PROGRESS.STAGE_1_LENGTH_M;
-  /** Distance in meters before sandstorm (early in stage 1) */
-  private readonly SANDSTORM_TRIGGER_DISTANCE = 150;
+  /** Distance in meters before sandstorm – after some gameplay (obstacles, questions) */
+  private readonly SANDSTORM_TRIGGER_DISTANCE = 250;
   private levelEndTriggered: boolean = false;
 
   /** Distance in meters before next chest spawn (tunable) */
@@ -193,11 +193,15 @@ export class EventManager {
           }
       }
 
-      // Standard checks
-      if (!this.isEncounterActive && this.eventPhase === 'NONE') {
-          this.checkLevelEnd(); 
-          this.checkLibraryEvent();
-          this.checkChestThreshold();
+      // Standard checks (chest + level end also during desert run so obstacles/stars/chests appear from start)
+      if (!this.isEncounterActive) {
+          if (this.eventPhase === 'NONE') {
+              this.checkLevelEnd();
+              this.checkLibraryEvent();
+          }
+          if (this.eventPhase === 'NONE' || this.eventPhase === 'INTRO_RUN') {
+              this.checkChestThreshold();
+          }
       }
   }
 
@@ -603,13 +607,29 @@ export class EventManager {
   }
 
   private resumeRunFromShelter() {
-      this.scene.player.isScripted = false; 
+      this.scene.clearQuestionAndResumePhysics();
+      this.scene.player.isScripted = false;
+      this.scene.player.stopStruggle();
       this.scene.player.play('run');
       this.scene.setGameSpeed(1.0);
+      if (this.scene.physics.world.isPaused) this.scene.physics.resume();
+      this.scene.player.anims.resume();
       this.scene.tweens.add({ targets: this.scene.player, x: 100, duration: 2000, ease: 'Power2.inOut' });
       this.eventPhase = 'NONE';
       this.encounterType = 'NONE';
       this.isEncounterActive = false;
+  }
+
+  /** Remove gate/chest when sandstorm starts (elements are removed, not hidden). */
+  public removeEncounterObjects(): void {
+      if (this.currentGate?.active) {
+          this.currentGate.destroy();
+          this.currentGate = null;
+      }
+      if (this.currentChest?.active) {
+          this.currentChest.destroy();
+          this.currentChest = null;
+      }
   }
 
   // --- CHEST LOGIC ---
@@ -630,7 +650,8 @@ export class EventManager {
   }
 
   public processQueuedEncounter(x: number, groundY: number): boolean {
-      if (this.eventPhase !== 'NONE') return true; 
+      // Allow processing chests in desert (INTRO_RUN) and normal run (NONE) so spawns are never blocked
+      if (this.eventPhase !== 'NONE' && this.eventPhase !== 'INTRO_RUN') return false;
 
       if (this.queuedEncounter === 'CHEST') {
           this.spawnChestPattern(x, groundY);

@@ -39,8 +39,8 @@ export class EnvironmentManager {
     this.checkZoneProgression();
   }
 
-  /** Distance in meters into city before library event (tunable) */
-  private readonly LIBRARY_TRIGGER_DISTANCE = 400;
+  /** Distance in meters into city before library – part of Stage 2 progression (tunable) */
+  private readonly LIBRARY_TRIGGER_DISTANCE = 250;
 
   private checkZoneProgression() {
       if (this.currentZone === 'CITY' && !this.hasTriggeredLibrary) {
