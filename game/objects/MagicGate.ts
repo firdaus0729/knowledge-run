@@ -23,6 +23,7 @@ export class MagicGate extends Phaser.GameObjects.Container {
 
   // Particles
   private suctionEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private lightOrbsEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
 
   private isActivated: boolean = false;
 
@@ -38,11 +39,11 @@ export class MagicGate extends Phaser.GameObjects.Container {
   }
 
   private createVisuals() {
-    // 1. God Rays – golden/mystical glow
+    // 1. God Rays – stronger golden/mystical glow
     this.godRays = this.scene.add.image(0, -250, 'gate_rays');
     this.godRays.setBlendMode(Phaser.BlendModes.ADD);
-    this.godRays.setAlpha(0.45);
-    this.godRays.setScale(3.0);
+    this.godRays.setAlpha(0.7);
+    this.godRays.setScale(3.5);
     this.godRays.setTint(0xffd700);
     this.add(this.godRays);
 
@@ -54,20 +55,27 @@ export class MagicGate extends Phaser.GameObjects.Container {
         ease: 'Linear'
     });
 
-    // 2. Cosmic Background (Nebula) – golden mystical energy
+    // 2. Cosmic Background (Nebula) – golden mystical energy, gentle pulse
     this.nebula = this.scene.add.sprite(0, -250, 'gate_nebula');
-    this.nebula.setAlpha(0.8);
+    this.nebula.setAlpha(0.9);
     this.nebula.setScale(0.8);
     this.nebula.setBlendMode(Phaser.BlendModes.ADD);
     this.nebula.setTint(0xffcc44);
     this.add(this.nebula);
-    
     this.scene.tweens.add({
         targets: this.nebula,
         angle: -360,
         duration: 20000,
         repeat: -1,
         ease: 'Linear'
+    });
+    this.scene.tweens.add({
+        targets: this.nebula,
+        alpha: 0.7,
+        duration: 1800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
     });
 
     // 3. The Vortex (Swirling star field)
@@ -85,13 +93,22 @@ export class MagicGate extends Phaser.GameObjects.Container {
         ease: 'Linear'
     });
 
-    // 4. Vortex Core (Bright golden center – “entering the light”)
+    // 4. Vortex Core (Bright golden center – “entering the light”), subtle pulse
     this.vortexCore = this.scene.add.sprite(0, -250, 'gate_core');
     this.vortexCore.setScale(0.5);
     this.vortexCore.setAlpha(1);
     this.vortexCore.setBlendMode(Phaser.BlendModes.ADD);
     this.vortexCore.setTint(0xffdd77);
     this.add(this.vortexCore);
+    this.scene.tweens.add({
+        targets: this.vortexCore,
+        scale: 0.62,
+        alpha: 0.92,
+        duration: 1400,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+    });
 
     // 5. Ancient Floating Arch
     this.outerArch = this.scene.add.sprite(0, 0, 'gate_ancient_arch');
@@ -155,6 +172,22 @@ export class MagicGate extends Phaser.GameObjects.Container {
           emitting: true
       });
       this.add(this.suctionEmitter);
+
+      if (!this.scene.textures.exists('gate_light_orb')) return;
+      this.lightOrbsEmitter = this.scene.add.particles(0, -250, 'gate_light_orb', {
+          scale: { start: 0.5, end: 0.15 },
+          alpha: { start: 0.4, end: 0 },
+          lifespan: 2200,
+          speed: { min: 8, max: 25 },
+          quantity: 2,
+          frequency: 120,
+          blendMode: 'ADD',
+          tint: [0xfff0c0, 0xffdc96, 0xffcc66],
+          emitZone: { type: 'edge', source: new Phaser.Geom.Circle(0, 0, 320), quantity: 12 },
+          radial: true,
+          emitting: true
+      });
+      this.add(this.lightOrbsEmitter);
   }
 
   public open() {
@@ -287,8 +320,8 @@ export class MagicGate extends Phaser.GameObjects.Container {
           ctx.strokeStyle = 'rgba(255, 215, 0, 0.9)';
           ctx.lineWidth = 4;
           ctx.stroke();
-          ctx.shadowBlur = 12;
-          ctx.shadowColor = '#ff8c00';
+          ctx.shadowBlur = 24;
+          ctx.shadowColor = '#ffcc00';
           ctx.beginPath();
           ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
           ctx.strokeStyle = '#ffa500';
@@ -406,7 +439,24 @@ export class MagicGate extends Phaser.GameObjects.Container {
           grd.addColorStop(1, 'rgba(255, 255, 255, 0)');
           ctx.fillStyle = grd;
           ctx.fillRect(0,0,512,512);
-          flashTex.refresh(); // CORRECT
+          flashTex.refresh();
+      }
+
+      // 8. LIGHT ORB – soft circular glow for floating light particles (magical, not collectible)
+      const orbTex = getTexture('gate_light_orb', 64, 64);
+      if (orbTex) {
+          const ctx = orbTex.context;
+          const cx = 32;
+          const grd = ctx.createRadialGradient(cx, cx, 0, cx, cx, 32);
+          grd.addColorStop(0, 'rgba(255, 250, 220, 0.95)');
+          grd.addColorStop(0.35, 'rgba(255, 220, 150, 0.5)');
+          grd.addColorStop(0.6, 'rgba(255, 200, 100, 0.15)');
+          grd.addColorStop(1, 'rgba(255, 180, 80, 0)');
+          ctx.fillStyle = grd;
+          ctx.beginPath();
+          ctx.arc(cx, cx, 32, 0, Math.PI * 2);
+          ctx.fill();
+          orbTex.refresh();
       }
   }
 }

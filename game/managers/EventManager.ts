@@ -172,9 +172,15 @@ export class EventManager {
       } 
       else if (this.eventPhase === 'LEVEL_END_APPROACH') {
           if (this.currentGate && this.currentGate.active) {
-              const stopX = this.scene.scale.width / 2; 
-              if (this.currentGate.x <= stopX) {
-                  this.currentGate.x = stopX; 
+              const centerX = this.scene.scale.width / 2;
+              const distToCenter = this.currentGate.x - centerX;
+              if (distToCenter <= 350) {
+                  this.scene.setGameSpeed(0.55);
+              } else {
+                  this.scene.setGameSpeed(1.0);
+              }
+              if (this.currentGate.x <= centerX) {
+                  this.currentGate.x = centerX; 
                   this.triggerGateArrival();
               }
           }
@@ -391,6 +397,9 @@ export class EventManager {
       const centerX = this.scene.scale.width / 2;
       const portalCenterY = gate.y - 220;
       player.setDepth(30);
+      this.scene.time.delayedCall(960, () => {
+          this.scene.cameras.main.flash(400, 255, 220, 150);
+      });
       this.scene.tweens.add({
           targets: player,
           x: centerX,
@@ -400,7 +409,10 @@ export class EventManager {
           duration: 1600,
           ease: 'Cubic.in',
           onComplete: () => {
-              this.scene.showDesertStageResults();
+              this.scene.cameras.main.fadeOut(1200, 255, 220, 150);
+              this.scene.cameras.main.once('camerafadeoutcomplete', () => {
+                  this.scene.showDesertStageResults();
+              });
           }
       });
   }
