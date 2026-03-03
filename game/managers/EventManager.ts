@@ -44,7 +44,7 @@ export class EventManager {
   // Level Progression (Step 2: distances in meters)
   private readonly STAGE_1_LENGTH = PROGRESS.STAGE_1_LENGTH_M;
   /** Distance in meters before sandstorm – after some gameplay (obstacles, questions) */
-  private readonly SANDSTORM_TRIGGER_DISTANCE = 250;
+  private readonly SANDSTORM_TRIGGER_DISTANCE = 230;
   private levelEndTriggered: boolean = false;
 
   /** Distance in meters before next chest spawn (tunable) */

@@ -93,19 +93,23 @@ export class SpawnManager {
     updateGroup(this.cats);
 
     const runDistance = this.scene.getRunDistance();
-    if (runDistance - this.lastHeartSpawnAt >= this.HEART_SPAWN_DISTANCE_M) {
-        this.lastHeartSpawnAt = runDistance;
-        const hY = this.scene.scale.height - Phaser.Math.Between(150, 400);
-        this.heartsGroup.add(new Heart(this.scene, this.scene.scale.width + 100, hY));
-    }
-    if (runDistance - this.lastShieldSpawnAt >= this.SHIELD_SPAWN_DISTANCE_M) {
-        this.lastShieldSpawnAt = runDistance;
-        const sY = this.scene.scale.height - Phaser.Math.Between(150, 400);
-        this.shieldsGroup.add(new ShieldItem(this.scene, this.scene.scale.width + 100, sY));
+    const evt = this.scene.eventManager;
+    const isSandstorm = evt.eventPhase === 'SANDSTORM_ONSET' || evt.eventPhase === 'SANDSTORM_WALK' || evt.eventPhase === 'SANDSTORM_APPROACH';
+
+    if (!isSandstorm) {
+        if (runDistance - this.lastHeartSpawnAt >= this.HEART_SPAWN_DISTANCE_M) {
+            this.lastHeartSpawnAt = runDistance;
+            const hY = this.scene.scale.height - Phaser.Math.Between(150, 400);
+            this.heartsGroup.add(new Heart(this.scene, this.scene.scale.width + 100, hY));
+        }
+        if (runDistance - this.lastShieldSpawnAt >= this.SHIELD_SPAWN_DISTANCE_M) {
+            this.lastShieldSpawnAt = runDistance;
+            const sY = this.scene.scale.height - Phaser.Math.Between(150, 400);
+            this.shieldsGroup.add(new ShieldItem(this.scene, this.scene.scale.width + 100, sY));
+        }
     }
 
     // Desert (INTRO_RUN): show obstacles, stars, boxes etc. from the very start of the run
-    const evt = this.scene.eventManager;
     const isDesertRun = evt.eventPhase === 'INTRO_RUN' && runDistance >= 0;
     const spawningAllowed = evt.isSpawningAllowed();
 

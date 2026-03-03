@@ -260,6 +260,13 @@ export class MainScene extends Phaser.Scene {
     if (this.eventManager.eventPhase === 'NUR_INTRO') return;
     if (this.isGameOver) return;
     if (this.activeMessage || this.activeQuestion) return;
+
+    // When storm is active, keep all obstacles/collectibles cleared so player cannot lose to obstacles
+    const phase = this.eventManager.eventPhase;
+    if (phase === 'SANDSTORM_ONSET' || phase === 'SANDSTORM_WALK' || phase === 'SANDSTORM_APPROACH') {
+      this.spawnManager.removeAllSpawned();
+      this.firstObstacleRef = null;
+    }
     
     const timeScale = this.physics.world.timeScale;
     const scaledDelta = delta * timeScale; // * so that timeScale < 1 slows the game down 
@@ -272,8 +279,7 @@ export class MainScene extends Phaser.Scene {
     if (currentSpeed > 0) {
         this.runDistance += frameMove * PROGRESS.DISTANCE_SCALE;
     }
-    
-    const phase = this.eventManager.eventPhase;
+
     if ((phase === 'SANDSTORM_ONSET' || phase === 'SANDSTORM_WALK' || phase === 'SANDSTORM_APPROACH') && this.sandstormOverlay) {
         this.sandstormOverlay.tilePositionX += (currentSpeed * 0.2) + 25; 
     }
@@ -426,6 +432,7 @@ export class MainScene extends Phaser.Scene {
       this.player.startStruggle();
       // Remove all obstacles, stars, chests, lives, shields, etc. during sandstorm (none left on screen)
       this.spawnManager.removeAllSpawned();
+      this.firstObstacleRef = null;
       this.eventManager.removeEncounterObjects();
       // Sandstorm warning – clearer that a sandstorm is coming
       this.showNoorMessage('انتبه… عاصفة رملية قادمة!', false, 'warning');
