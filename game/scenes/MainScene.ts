@@ -564,6 +564,8 @@ export class MainScene extends Phaser.Scene {
 
   public getRunDistance(): number { return this.runDistance; }
   public getCurrentStage(): number { return this.currentStage; }
+  /** City-stage start distance (meters); used to compute distance run in Stage 2. */
+  public getCityStartDistance(): number { return this.cityStartDistanceForStats; }
   
   public addScore(amount: number) {
       this.collectedStarsCount += amount;
@@ -770,13 +772,16 @@ export class MainScene extends Phaser.Scene {
       goldenOverlay.setScrollFactor(0);
 
       const finalMessage = 'انتهت الرحلة… وبدأت حكاية جديدة نحو العلم.';
+      const wrapWidth = Math.floor(width * 0.88);
+      const isNarrow = width < 400;
       const txt = this.add.text(width / 2, height / 2, finalMessage, {
           fontFamily: 'Cairo',
-          fontSize: '28px',
+          fontSize: isNarrow ? '22px' : '28px',
           fontStyle: 'bold',
           color: '#e8c547',
           align: 'center'
       });
+      txt.setWordWrapWidth(wrapWidth);
       txt.setOrigin(0.5, 0.5);
       txt.setStroke('#8b6914', 2);
       txt.setShadow(0, 0, 'rgba(232, 197, 71, 0.6)', 12);

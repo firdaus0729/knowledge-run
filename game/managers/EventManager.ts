@@ -68,6 +68,8 @@ export class EventManager {
   private readonly CARPET_SPAWN_DIST_M = 400;
   private carpetMissed: boolean = false;
   private nextCarpetSpawnPos: number = 0;
+  /** True once Stage 2 has been ended (library results shown) so we don't trigger again. */
+  private stage2EndTriggered: boolean = false;
   
   // Tutorial Flags for Flow
   private hasTriggeredRooftopTutorial: boolean = false;
@@ -203,11 +205,25 @@ export class EventManager {
       if (!this.isEncounterActive) {
           if (this.eventPhase === 'NONE') {
               this.checkLevelEnd();
+              this.checkStage2End();
               this.checkLibraryEvent();
           }
           if (this.eventPhase === 'NONE' || this.eventPhase === 'INTRO_RUN') {
               this.checkChestThreshold();
           }
+      }
+  }
+
+  /** End Stage 2 only after running the full city distance (STAGE_2_LENGTH_M), not at library entry. */
+  private checkStage2End() {
+      if (this.stage2EndTriggered || this.scene.getCurrentStage() !== 2) return;
+      const cityStart = this.scene.getCityStartDistance();
+      if (cityStart < 0) return;
+      const distInCity = this.scene.getRunDistance() - cityStart;
+      if (distInCity >= this.STAGE_2_LENGTH_M) {
+          this.stage2EndTriggered = true;
+          this.scene.setGameSpeed(0);
+          this.scene.showLibraryStageResults();
       }
   }
 
@@ -533,16 +549,25 @@ export class EventManager {
               this.scene.cameras.main.once('camerafadeincomplete', () => {
                   this.scene.player.isScripted = false;
                   this.scene.setGameSpeed(0);
-                  // Bayt Al-Hikma: show subtitle 2–3 s, then Noor message, then results
+                  // Bayt Al-Hikma: show subtitle 2–3 s, then Noor message, then resume running (game ends at full city distance)
                   this.scene.showStageTitle('بيت الحكمة', 2500, () => {
                       this.scene.showNoorMessage('أهلاً بك في بيت الحكمة… هنا نهاية الرحلة وبداية العلم. 📚', false, 'greet');
-                      this.scene.time.delayedCall(4500, () => {
-                          this.scene.showLibraryStageResults();
-                      });
+                      this.scene.time.delayedCall(4500, () => this.resumeRunInLibrary());
                   });
               });
           });
       });
+  }
+
+  /** After library intro (title + Noor): resume running; game ends when city distance reaches STAGE_2_LENGTH_M. */
+  private resumeRunInLibrary() {
+      this.scene.hideNoorMessage();
+      this.eventPhase = 'NONE';
+      this.isEncounterActive = false;
+      this.encounterType = 'NONE';
+      this.scene.player.isScripted = false;
+      this.scene.setGameSpeed(1.0);
+      this.scene.player.play('run');
   }
 
   // --- SANDSTORM LOGIC ---
