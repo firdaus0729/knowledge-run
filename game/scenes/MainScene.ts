@@ -101,6 +101,8 @@ export class MainScene extends Phaser.Scene {
   preload() {
       this.load.crossOrigin = 'anonymous';
       this.load.audio('portal_open', 'https://assets.mixkit.co/active_storage/sfx/2570-magical-sweep.mp3');
+      // Optional: ending theme for final cinematic (placeholder; use local path if you have one)
+      this.load.audio('ending_theme', 'https://assets.mixkit.co/music/preview/mixkit-a-very-long-cinematic-passage-2.mp3');
       // Nur character images (5 expressions) – served from public/nur/
       this.load.image('nur_img_greet', '/nur/nur_greet.png');
       this.load.image('nur_img_encourage', '/nur/nur_encourage.png');
@@ -223,7 +225,8 @@ export class MainScene extends Phaser.Scene {
       this.eventManager.continueDesertTransition();
     } else if (this.pendingTransition === 'LIBRARY_END') {
       if (this.nurController) this.nurController.hide();
-      this.eventManager.continueLibraryTransition();
+      this.beginFinalCinematicEnding();
+      return;
     }
     this.stageResults = null;
     this.pendingTransition = null;
@@ -751,6 +754,83 @@ export class MainScene extends Phaser.Scene {
           this.stageTitle = null;
           this.syncUI();
           onComplete();
+      });
+  }
+
+  /** After Bayt Al-Hikma results: golden closing, final message, then return to main menu. */
+  private beginFinalCinematicEnding() {
+      this.stageResults = null;
+      this.pendingTransition = null;
+      this.syncUI();
+
+      const { width, height } = this.scale;
+      const goldenOverlay = this.add.rectangle(width / 2, height / 2, width + 200, height + 200, 0x2a1f0a);
+      goldenOverlay.setAlpha(0);
+      goldenOverlay.setDepth(300);
+      goldenOverlay.setScrollFactor(0);
+
+      const finalMessage = 'انتهت الرحلة… وبدأت حكاية جديدة نحو العلم.';
+      const txt = this.add.text(width / 2, height / 2, finalMessage, {
+          fontFamily: 'Cairo',
+          fontSize: '28px',
+          fontStyle: 'bold',
+          color: '#e8c547',
+          align: 'center'
+      });
+      txt.setOrigin(0.5, 0.5);
+      txt.setStroke('#8b6914', 2);
+      txt.setShadow(0, 0, 'rgba(232, 197, 71, 0.6)', 12);
+      txt.setAlpha(0);
+      txt.setDepth(301);
+      txt.setScrollFactor(0);
+
+      this.tweens.add({
+          targets: goldenOverlay,
+          alpha: 0.45,
+          duration: 2200,
+          ease: 'Power1.inOut'
+      });
+
+      this.time.delayedCall(800, () => {
+          try {
+              const s = this.sound.get('ending_theme');
+              if (s) s.play();
+          } catch (_) { /* placeholder may not exist */ }
+      });
+
+      this.time.delayedCall(2200, () => {
+          this.tweens.add({
+              targets: txt,
+              alpha: 1,
+              duration: 1000,
+              ease: 'Power1.out',
+              onComplete: () => {
+                  this.time.delayedCall(2000, () => {
+                      this.tweens.add({
+                          targets: txt,
+                          alpha: 0,
+                          duration: 1200,
+                          ease: 'Power1.in',
+                          onComplete: () => this.fadeToMainMenu()
+                      });
+                  });
+              }
+          });
+      });
+  }
+
+  private fadeToMainMenu() {
+      this.onScoreUpdate({
+          distance: this.runDistance,
+          stars: this.collectedStarsCount,
+          hearts: this.hearts,
+          isGameOver: this.isGameOver,
+          stageResults: undefined,
+          returnToMenu: true
+      } as GameState);
+      this.cameras.main.fadeOut(1500, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+          this.scene.start('HomeScene');
       });
   }
 

@@ -36,6 +36,7 @@ function App() {
 
     const game = createGame('game-container', (data) => {
       const d = data as Record<string, unknown>;
+      if (d.returnToMenu) setGameStatus('home');
       setGameState(prev => ({
         ...prev,
         distance: d.distance !== undefined ? d.distance as number : prev.distance,

@@ -7,7 +7,10 @@ export class LibraryAssetGenerator {
         this.generateMidShelves(scene);
         this.generateNearColumns(scene);
         this.generateLibraryGround(scene);
-        
+        this.generateDomeSilhouette(scene);
+        this.generateAndalusianPattern(scene);
+        this.generateGoldenAmbient(scene);
+
         // Decor Items
         this.generateCandelabra(scene);
         this.generateGlobe(scene);
@@ -332,6 +335,79 @@ export class LibraryAssetGenerator {
             ctx.fillStyle = '#00e5ff'; ctx.globalAlpha = 0.8; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 15; ctx.beginPath(); ctx.arc(lx, ly + 60, 5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.globalAlpha = 1.0;
         }
 
+        canvas.refresh();
+    }
+
+    /** Subtle Islamic dome silhouette for Bayt Al-Hikma identity (soft, blurred feel). */
+    private static generateDomeSilhouette(scene: Phaser.Scene) {
+        if (scene.textures.exists('bg_lib_dome')) return;
+        const W = 512;
+        const H = 400;
+        const canvas = scene.textures.createCanvas('bg_lib_dome', W, H);
+        if (!canvas) return;
+        const ctx = canvas.context;
+        const cx = W / 2;
+        const baseY = H - 40;
+        const domeR = 220;
+        const grd = ctx.createRadialGradient(cx, baseY - domeR * 0.5, 0, cx, baseY - domeR * 0.5, domeR);
+        grd.addColorStop(0, 'rgba(60, 40, 30, 0.5)');
+        grd.addColorStop(0.5, 'rgba(40, 25, 20, 0.35)');
+        grd.addColorStop(1, 'rgba(20, 15, 15, 0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(cx, baseY - domeR * 0.2, domeR, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.lineTo(cx - domeR * 0.3, baseY);
+        ctx.lineTo(cx + domeR * 0.3, baseY);
+        ctx.closePath();
+        ctx.fill();
+        canvas.refresh();
+    }
+
+    /** Simple 8-pointed star / Islamic geometric repeat for overlay (5–8% opacity). */
+    private static generateAndalusianPattern(scene: Phaser.Scene) {
+        if (scene.textures.exists('bg_lib_pattern')) return;
+        const S = 256;
+        const canvas = scene.textures.createCanvas('bg_lib_pattern', S, S);
+        if (!canvas) return;
+        const ctx = canvas.context;
+        const cx = S / 2;
+        const outerR = 100;
+        const innerR = 38;
+        ctx.strokeStyle = 'rgba(255, 230, 180, 0.2)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+            const a1 = (i / 8) * Math.PI * 2;
+            const a2 = ((i + 0.5) / 8) * Math.PI * 2;
+            const x1 = cx + Math.cos(a1) * outerR;
+            const y1 = cx + Math.sin(a1) * outerR;
+            const x2 = cx + Math.cos(a2) * innerR;
+            const y2 = cx + Math.sin(a2) * innerR;
+            if (i === 0) ctx.moveTo(x1, y1);
+            else ctx.lineTo(x1, y1);
+            ctx.lineTo(x2, y2);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        canvas.refresh();
+    }
+
+    /** Warm golden ambient overlay (soft glow) for Bayt Al-Hikma. */
+    private static generateGoldenAmbient(scene: Phaser.Scene) {
+        if (scene.textures.exists('bg_lib_golden')) return;
+        const W = 512;
+        const H = 512;
+        const canvas = scene.textures.createCanvas('bg_lib_golden', W, H);
+        if (!canvas) return;
+        const ctx = canvas.context;
+        const cx = W / 2;
+        const cy = H / 2;
+        const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, W * 0.8);
+        grd.addColorStop(0, 'rgba(255, 220, 160, 0.25)');
+        grd.addColorStop(0.5, 'rgba(255, 200, 120, 0.12)');
+        grd.addColorStop(1, 'rgba(200, 150, 80, 0)');
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, W, H);
         canvas.refresh();
     }
 

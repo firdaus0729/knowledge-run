@@ -533,7 +533,13 @@ export class EventManager {
               this.scene.cameras.main.once('camerafadeincomplete', () => {
                   this.scene.player.isScripted = false;
                   this.scene.setGameSpeed(0);
-                  this.scene.showLibraryStageResults();
+                  // Bayt Al-Hikma: show subtitle 2–3 s, then Noor message, then results
+                  this.scene.showStageTitle('بيت الحكمة', 2500, () => {
+                      this.scene.showNoorMessage('أهلاً بك في بيت الحكمة… هنا نهاية الرحلة وبداية العلم. 📚', false, 'greet');
+                      this.scene.time.delayedCall(4500, () => {
+                          this.scene.showLibraryStageResults();
+                      });
+                  });
               });
           });
       });

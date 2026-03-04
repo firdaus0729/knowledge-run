@@ -38,6 +38,8 @@ export interface GameState {
   currentStage?: number;
   /** Stage title overlay (Arabic); show 2–3 s then fade out */
   stageTitle?: string | null;
+  /** When true, game has ended (e.g. after Bayt Al-Hikma); React should show home. */
+  returnToMenu?: boolean;
 }
 
 export interface Question {
