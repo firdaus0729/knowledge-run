@@ -103,8 +103,9 @@ export class CollisionManager {
   }
 
   private handleCollectStar(player: any, star: any) {
-      (star as Star).collect(); 
+      (star as Star).collect();
       this.scene.addScore(10);
+      this.scene.playSfx('star');
       this.scene.showFloatingText((star as Star).x, (star as Star).y, `+١٠`);
   }
 

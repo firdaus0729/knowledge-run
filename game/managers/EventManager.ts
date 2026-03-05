@@ -467,6 +467,7 @@ export class EventManager {
 
       this.scene.cameras.main.once('camerafadeincomplete', () => {
           this.scene.recordCityStageStart();
+          this.scene.playMusic('city');
           // Step 2: show stage title first (2.5 s), then Noor message
           this.scene.showStageTitle('المرحلة 2 – مدخل المدينة', 2500, () => {
               this.scene.showNoorMessage("مرحبًا بك في مدينة العلم…\nقد لا تكون الرحلة سهلة،\nلكنني سأكون معك في كل خطوة.", false, 'greet');

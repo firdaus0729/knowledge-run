@@ -51,7 +51,9 @@ function App() {
         climbProgress: d.climbProgress !== undefined ? d.climbProgress as number : prev.climbProgress,
         stageProgressPercent: d.stageProgressPercent !== undefined ? d.stageProgressPercent as number : prev.stageProgressPercent,
         currentStage: d.currentStage !== undefined ? d.currentStage as number : prev.currentStage,
-        stageTitle: 'stageTitle' in d ? (d.stageTitle as string | null) : prev.stageTitle
+        stageTitle: 'stageTitle' in d ? (d.stageTitle as string | null) : prev.stageTitle,
+        soundEnabled: d.soundEnabled !== undefined ? d.soundEnabled as boolean : prev.soundEnabled,
+        musicEnabled: d.musicEnabled !== undefined ? d.musicEnabled as boolean : prev.musicEnabled
       }));
     });
 
@@ -148,6 +150,20 @@ function App() {
     }
   };
 
+  const handleSoundToggle = () => {
+    if (gameRef.current) {
+      const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
+      if (scene?.setSoundEnabled) scene.setSoundEnabled(!(gameState.soundEnabled !== false));
+    }
+  };
+
+  const handleMusicToggle = () => {
+    if (gameRef.current) {
+      const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
+      if (scene?.setMusicEnabled) scene.setMusicEnabled(!(gameState.musicEnabled !== false));
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (gameState.isGameOver && e.key.toLowerCase() === 'r') {
@@ -194,6 +210,8 @@ function App() {
             onRestart={handleRestart} 
             onAnswer={handleNoorAnswer} 
             onMessageDismiss={handleMessageDismiss}
+            onSoundToggle={handleSoundToggle}
+            onMusicToggle={handleMusicToggle}
           />
           {gameState.stageResults && (
             <StageResultsUI

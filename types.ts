@@ -40,6 +40,10 @@ export interface GameState {
   stageTitle?: string | null;
   /** When true, game has ended (e.g. after Bayt Al-Hikma); React should show home. */
   returnToMenu?: boolean;
+  /** Step 5 – Audio: SFX on/off (persisted in localStorage). */
+  soundEnabled?: boolean;
+  /** Step 5 – Audio: BGM on/off (persisted in localStorage). */
+  musicEnabled?: boolean;
 }
 
 export interface Question {

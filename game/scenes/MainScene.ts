@@ -21,6 +21,7 @@ import { EnvironmentManager } from '../managers/EnvironmentManager';
 import { SpawnManager } from '../managers/SpawnManager';
 import { EventManager } from '../managers/EventManager';
 import { CollisionManager } from '../managers/CollisionManager';
+import { AudioManager, type SfxType, type BGMStage } from '../managers/AudioManager';
 
 export class MainScene extends Phaser.Scene {
   declare scale: Phaser.Scale.ScaleManager;
@@ -41,6 +42,7 @@ export class MainScene extends Phaser.Scene {
   public eventManager!: EventManager;
   public collisionManager!: CollisionManager;
   public nurController!: NurController;
+  public audioManager!: AudioManager;
 
   // Visuals
   private sandstormOverlay!: Phaser.GameObjects.TileSprite;
@@ -100,8 +102,17 @@ export class MainScene extends Phaser.Scene {
 
   preload() {
       this.load.crossOrigin = 'anonymous';
+      // BGM – Stage 1 (desert) & Stage 2 (city)
+      this.load.audio('bgm_desert', 'https://assets.mixkit.co/music/preview/mixkit-desert-wind-1290.mp3');
+      this.load.audio('bgm_city', 'https://assets.mixkit.co/music/preview/mixkit-a-very-long-cinematic-passage-2.mp3');
+      // SFX
       this.load.audio('portal_open', 'https://assets.mixkit.co/active_storage/sfx/2570-magical-sweep.mp3');
-      // Optional: ending theme for final cinematic (placeholder; use local path if you have one)
+      this.load.audio('sfx_jump', 'https://assets.mixkit.co/active_storage/sfx/2568-pop-click.mp3');
+      this.load.audio('sfx_star', 'https://assets.mixkit.co/active_storage/sfx/2019-success-bell-notification.mp3');
+      this.load.audio('sfx_correct', 'https://assets.mixkit.co/active_storage/sfx/1998-correct-answer-reward.mp3');
+      this.load.audio('sfx_wrong', 'https://assets.mixkit.co/active_storage/sfx/2003-fail-buzzer.mp3');
+      this.load.audio('sfx_storm', 'https://assets.mixkit.co/active_storage/sfx/2582-wind-in-the-trees.mp3');
+      this.load.audio('sfx_stageComplete', 'https://assets.mixkit.co/active_storage/sfx/2015-short-success-fanfare.mp3');
       this.load.audio('ending_theme', 'https://assets.mixkit.co/music/preview/mixkit-a-very-long-cinematic-passage-2.mp3');
       // Nur character images (5 expressions) – served from public/nur/
       this.load.image('nur_img_greet', '/nur/nur_greet.png');
@@ -149,13 +160,41 @@ export class MainScene extends Phaser.Scene {
     // 5. Setup Collisions
     this.collisionManager.setupCollisions();
 
-    // 6. Event Listeners
+    // 6. Audio (Step 5 – preferences from localStorage)
+    const soundOn = typeof localStorage !== 'undefined' && localStorage.getItem('soundEnabled') !== '0';
+    const musicOn = typeof localStorage !== 'undefined' && localStorage.getItem('musicEnabled') !== '0';
+    this.audioManager = new AudioManager(this, { soundEnabled: soundOn, musicEnabled: musicOn });
+
+    // 7. Event Listeners
     this.scale.on('resize', this.handleResize, this);
     this.input.on('pointerdown', this.handleGlobalTap, this);
 
-    // 7. Nur intro at center (cinematic), then start running
+    // 8. Nur intro at center (cinematic), then start running
     this.startNurIntro();
   }
+
+  /** Step 5 – Audio: play one-shot SFX (respects soundEnabled). */
+  public playSfx(type: SfxType): void {
+    this.audioManager?.playSfx(type);
+  }
+
+  /** Step 5 – Audio: switch BGM by stage (no restart if same stage). */
+  public playMusic(stage: BGMStage): void {
+    this.audioManager?.playMusic(stage);
+  }
+
+  public setSoundEnabled(value: boolean): void {
+    this.audioManager?.setSoundEnabled(value);
+    this.syncUI();
+  }
+
+  public setMusicEnabled(value: boolean): void {
+    this.audioManager?.setMusicEnabled(value);
+    this.syncUI();
+  }
+
+  public getSoundEnabled(): boolean { return this.audioManager?.soundEnabled ?? true; }
+  public getMusicEnabled(): boolean { return this.audioManager?.musicEnabled ?? true; }
 
   /** Nur appears at center with city-intro style line before the run begins */
   private startNurIntro() {
@@ -172,6 +211,7 @@ export class MainScene extends Phaser.Scene {
       this.stageStartTime = this.time.now;
       this.physics.resume();
       this.player.play('run');
+      this.playMusic('desert');
       // Step 2: stage title temporary intro only (2–3 s then fade out)
       this.stageTitle = 'المرحلة 1 – طريق الصحراء';
       this.syncUI();
@@ -191,6 +231,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   public showDesertStageResults() {
+    this.playSfx('stageComplete');
     this.stageResults = {
       stageName: 'نهاية الصحراء',
       distance: this.runDistance,
@@ -205,6 +246,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   public showLibraryStageResults() {
+    this.playSfx('stageComplete');
     const distInCity = this.runDistance - this.cityStartDistanceForStats;
     this.stageResults = {
       stageName: 'بيت الحكمة',
@@ -423,6 +465,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   public startSandstorm() {
+      this.playSfx('storm');
       // If a question was open (chest encounter), clear it and resume physics so we don't get stuck
       this.clearQuestionAndResumePhysics();
       this.eventManager.isEncounterActive = false;
@@ -672,6 +715,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   public resumeGameFromNoor(isCorrect: boolean) {
+      this.playSfx(isCorrect ? 'correct' : 'wrong');
       if (isCorrect) {
           this.correctAnswersCount++;
           this.activeQuestion = null; 
@@ -735,7 +779,9 @@ export class MainScene extends Phaser.Scene {
           stageResults: this.stageResults || undefined,
           stageProgressPercent: progressPercent,
           currentStage: this.currentStage,
-          stageTitle: this.stageTitle === null ? null : this.stageTitle
+          stageTitle: this.stageTitle === null ? null : this.stageTitle,
+          soundEnabled: this.getSoundEnabled(),
+          musicEnabled: this.getMusicEnabled()
       });
   }
 

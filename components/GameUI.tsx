@@ -8,9 +8,11 @@ interface GameUIProps {
   onAnswer?: (isCorrect: boolean) => void;
   onIntroComplete?: () => void;
   onMessageDismiss?: () => void;
+  onSoundToggle?: () => void;
+  onMusicToggle?: () => void;
 }
 
-export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, onMessageDismiss }) => {
+export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, onMessageDismiss, onSoundToggle, onMusicToggle }) => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showResult, setShowResult] = useState<'correct' | 'wrong' | null>(null);
 
@@ -215,8 +217,33 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
                 <span className="text-lg md:text-xl font-black">{gameState.stars}</span>
               </div>
             </div>
-            {/* Distance + Hearts – top right */}
-            <div className="flex items-center gap-3">
+            {/* Distance + Hearts + Audio toggles – top right */}
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Step 5 – Audio: Sound & Music toggles (persisted in localStorage) */}
+              <div className="flex items-center gap-1 pointer-events-auto">
+                {onSoundToggle && (
+                  <button
+                    type="button"
+                    onClick={onSoundToggle}
+                    className="p-1.5 md:p-2 rounded-lg bg-black/40 border border-white/10 hover:bg-black/60 hover:border-[#ffd700]/40 transition-colors"
+                    title={gameState.soundEnabled !== false ? 'إيقاف الصوت' : 'تشغيل الصوت'}
+                    aria-label={gameState.soundEnabled !== false ? 'Sound on' : 'Sound off'}
+                  >
+                    <span className="text-lg md:text-xl">{gameState.soundEnabled !== false ? '🔊' : '🔇'}</span>
+                  </button>
+                )}
+                {onMusicToggle && (
+                  <button
+                    type="button"
+                    onClick={onMusicToggle}
+                    className={`p-1.5 md:p-2 rounded-lg bg-black/40 border border-white/10 hover:bg-black/60 hover:border-[#ffd700]/40 transition-colors ${gameState.musicEnabled === false ? 'opacity-60' : ''}`}
+                    title={gameState.musicEnabled !== false ? 'إيقاف الموسيقى' : 'تشغيل الموسيقى'}
+                    aria-label={gameState.musicEnabled !== false ? 'Music on' : 'Music off'}
+                  >
+                    <span className="text-lg md:text-xl">🎵</span>
+                  </button>
+                )}
+              </div>
               <div className="bg-black/40 backdrop-blur-md px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-white/10 shadow-lg">
                 <div className="flex flex-col items-center leading-tight">
                   <span className="text-white/60 text-[8px] md:text-[10px] uppercase tracking-widest font-bold">المسافة</span>

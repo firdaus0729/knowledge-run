@@ -194,10 +194,7 @@ export class MagicGate extends Phaser.GameObjects.Container {
       if (this.isActivated) return;
       this.isActivated = true;
 
-      // Magical portal sound (plays if loaded in MainScene preload)
-      try {
-          this.scene.sound.add('portal_open').play({ volume: 0.6 });
-      } catch (_) {}
+      (this.scene as { playSfx?: (t: string) => void }).playSfx?.('gate');
 
       // A. RAMP UP EFFECTS - MASSIVE SIZE INCREASE
       
