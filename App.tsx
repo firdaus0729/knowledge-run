@@ -53,7 +53,8 @@ function App() {
         currentStage: d.currentStage !== undefined ? d.currentStage as number : prev.currentStage,
         stageTitle: 'stageTitle' in d ? (d.stageTitle as string | null) : prev.stageTitle,
         soundEnabled: d.soundEnabled !== undefined ? d.soundEnabled as boolean : prev.soundEnabled,
-        musicEnabled: d.musicEnabled !== undefined ? d.musicEnabled as boolean : prev.musicEnabled
+        musicEnabled: d.musicEnabled !== undefined ? d.musicEnabled as boolean : prev.musicEnabled,
+        activePuzzle: 'activePuzzle' in d ? (d.activePuzzle as GameState['activePuzzle']) : prev.activePuzzle
       }));
     });
 
@@ -153,13 +154,24 @@ function App() {
   const handleSoundToggle = () => {
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
+      scene?.playSfx?.('buttonConfirm');
       if (scene?.setSoundEnabled) scene.setSoundEnabled(!(gameState.soundEnabled !== false));
+    }
+  };
+
+  const handlePuzzleAnswer = (index: number) => {
+    if (gameRef.current) {
+      const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
+      if (scene && typeof (scene as any).resolvePuzzleAnswer === 'function') {
+        (scene as any).resolvePuzzleAnswer(index);
+      }
     }
   };
 
   const handleMusicToggle = () => {
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
+      scene?.playSfx?.('buttonConfirm');
       if (scene?.setMusicEnabled) scene.setMusicEnabled(!(gameState.musicEnabled !== false));
     }
   };
@@ -210,6 +222,7 @@ function App() {
             onRestart={handleRestart} 
             onAnswer={handleNoorAnswer} 
             onMessageDismiss={handleMessageDismiss}
+            onPuzzleAnswer={handlePuzzleAnswer}
             onSoundToggle={handleSoundToggle}
             onMusicToggle={handleMusicToggle}
           />

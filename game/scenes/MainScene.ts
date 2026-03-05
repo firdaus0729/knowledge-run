@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import { PHYSICS, PROGRESS } from '../../constants';
 import { Player } from '../objects/Player';
 import { Obstacle } from '../objects/Obstacle';
-import { Question, GameState, NoorMessage, StageResultsData } from '../../types';
+import { Question, GameState, NoorMessage, StageResultsData, ActivePuzzle, PuzzleType } from '../../types';
 import { getQuestions } from '../data/questions';
 
 // Objects for Texture Generation
@@ -83,6 +83,10 @@ export class MainScene extends Phaser.Scene {
 
   // Step 2 – Progress: stage title overlay (Arabic), cleared after 2–3 s
   private stageTitle: string | null = null;
+
+  // Step 6 – Mini puzzles (storm / library / dual-path)
+  private activePuzzle: ActivePuzzle | null = null;
+  private puzzleTimer: Phaser.Time.TimerEvent | null = null;
   
   // Guidance Flags
   private guideFlags = {
@@ -102,17 +106,25 @@ export class MainScene extends Phaser.Scene {
 
   preload() {
       this.load.crossOrigin = 'anonymous';
-      // BGM – Stage 1 (desert) & Stage 2 (city)
-      this.load.audio('bgm_desert', 'https://assets.mixkit.co/music/preview/mixkit-desert-wind-1290.mp3');
-      this.load.audio('bgm_city', 'https://assets.mixkit.co/music/preview/mixkit-a-very-long-cinematic-passage-2.mp3');
-      // SFX
-      this.load.audio('portal_open', 'https://assets.mixkit.co/active_storage/sfx/2570-magical-sweep.mp3');
-      this.load.audio('sfx_jump', 'https://assets.mixkit.co/active_storage/sfx/2568-pop-click.mp3');
-      this.load.audio('sfx_star', 'https://assets.mixkit.co/active_storage/sfx/2019-success-bell-notification.mp3');
-      this.load.audio('sfx_correct', 'https://assets.mixkit.co/active_storage/sfx/1998-correct-answer-reward.mp3');
-      this.load.audio('sfx_wrong', 'https://assets.mixkit.co/active_storage/sfx/2003-fail-buzzer.mp3');
-      this.load.audio('sfx_storm', 'https://assets.mixkit.co/active_storage/sfx/2582-wind-in-the-trees.mp3');
-      this.load.audio('sfx_stageComplete', 'https://assets.mixkit.co/active_storage/sfx/2015-short-success-fanfare.mp3');
+      // BGM – Complete Sound Library: BGM_01 Main Runner, BGM_02–06 World variations (city = BGM_02)
+      this.load.audio('BGM_01', 'https://assets.mixkit.co/music/preview/mixkit-desert-wind-1290.mp3');
+      this.load.audio('BGM_02', 'https://assets.mixkit.co/music/preview/mixkit-a-very-long-cinematic-passage-2.mp3');
+      // SFX – spec keys and placeholder URLs (replace with final assets)
+      this.load.audio('SFX_Jump', 'https://assets.mixkit.co/active_storage/sfx/2568-pop-click.mp3');
+      this.load.audio('SFX_Land', 'https://assets.mixkit.co/active_storage/sfx/2568-pop-click.mp3');
+      this.load.audio('SFX_StarCollect', 'https://assets.mixkit.co/active_storage/sfx/2019-success-bell-notification.mp3');
+      this.load.audio('SFX_EventAppear', 'https://assets.mixkit.co/active_storage/sfx/2570-magical-sweep.mp3');
+      this.load.audio('SFX_CorrectChoice', 'https://assets.mixkit.co/active_storage/sfx/1998-correct-answer-reward.mp3');
+      this.load.audio('SFX_WrongChoice', 'https://assets.mixkit.co/active_storage/sfx/2003-fail-buzzer.mp3');
+      this.load.audio('SFX_NoorAppear', 'https://assets.mixkit.co/active_storage/sfx/2019-success-bell-notification.mp3');
+      this.load.audio('SFX_NoorHelp', 'https://assets.mixkit.co/active_storage/sfx/1998-correct-answer-reward.mp3');
+      this.load.audio('SFX_ButtonConfirm', 'https://assets.mixkit.co/active_storage/sfx/2568-pop-click.mp3');
+      this.load.audio('SFX_ObjectActivate', 'https://assets.mixkit.co/active_storage/sfx/2570-magical-sweep.mp3');
+      this.load.audio('SFX_RewardMoment', 'https://assets.mixkit.co/active_storage/sfx/2015-short-success-fanfare.mp3');
+      this.load.audio('SFX_LevelComplete', 'https://assets.mixkit.co/active_storage/sfx/2015-short-success-fanfare.mp3');
+      this.load.audio('SFX_Storm', 'https://assets.mixkit.co/active_storage/sfx/2582-wind-in-the-trees.mp3');
+      this.load.audio('SFX_PauseOpen', 'https://assets.mixkit.co/active_storage/sfx/2568-pop-click.mp3');
+      this.load.audio('SFX_PauseClose', 'https://assets.mixkit.co/active_storage/sfx/2568-pop-click.mp3');
       this.load.audio('ending_theme', 'https://assets.mixkit.co/music/preview/mixkit-a-very-long-cinematic-passage-2.mp3');
       // Nur character images (5 expressions) – served from public/nur/
       this.load.image('nur_img_greet', '/nur/nur_greet.png');
@@ -231,7 +243,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   public showDesertStageResults() {
-    this.playSfx('stageComplete');
+    this.playSfx('levelComplete');
+    this.audioManager?.fadeBGMDown();
     this.stageResults = {
       stageName: 'نهاية الصحراء',
       distance: this.runDistance,
@@ -246,7 +259,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   public showLibraryStageResults() {
-    this.playSfx('stageComplete');
+    this.playSfx('levelComplete');
+    this.audioManager?.fadeBGMDown();
     const distInCity = this.runDistance - this.cityStartDistanceForStats;
     this.stageResults = {
       stageName: 'بيت الحكمة',
@@ -262,6 +276,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   public continueAfterStageResults() {
+    this.audioManager?.fadeBGMUp();
     if (this.pendingTransition === 'DESERT_END') {
       if (this.nurController) this.nurController.hide();
       this.eventManager.continueDesertTransition();
@@ -466,6 +481,7 @@ export class MainScene extends Phaser.Scene {
 
   public startSandstorm() {
       this.playSfx('storm');
+      this.audioManager?.fadeBGMDown();
       // If a question was open (chest encounter), clear it and resume physics so we don't get stuck
       this.clearQuestionAndResumePhysics();
       this.eventManager.isEncounterActive = false;
@@ -688,6 +704,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   public pauseGameplayForQuestion(specificId?: string) {
+      this.audioManager?.fadeBGMDown();
       this.speedModifier = 0; 
       this.player.anims.pause();
       if (this.physics.world.isPaused === false) {
@@ -715,7 +732,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   public resumeGameFromNoor(isCorrect: boolean) {
-      this.playSfx(isCorrect ? 'correct' : 'wrong');
+      this.playSfx(isCorrect ? 'correctChoice' : 'wrongChoice');
+      if (isCorrect) this.audioManager?.fadeBGMUp();
       if (isCorrect) {
           this.correctAnswersCount++;
           this.activeQuestion = null; 
@@ -730,6 +748,7 @@ export class MainScene extends Phaser.Scene {
               this.eventManager.currentChest.open(() => {
                   const reward = Phaser.Math.Between(5, 20);
                   this.addScore(reward);
+                  this.playSfx('rewardMoment');
                   this.showFloatingText(this.player.x, this.player.y - 100, `+${reward} نجمة!`, '#ffd700');
                   this.handlePostAnswerDelay(false);
               });
@@ -764,6 +783,74 @@ export class MainScene extends Phaser.Scene {
       this.syncUI();
   }
 
+  // --- MINI PUZZLES (Storm / Library / Dual Path) ---
+
+  /** Show a short puzzle overlay and pause gameplay softly. */
+  public showPuzzle(puzzle: ActivePuzzle) {
+      // Avoid stacking puzzles
+      if (this.activePuzzle) return;
+      this.activePuzzle = puzzle;
+      this.audioManager?.fadeBGMDown();
+      this.speedModifier = 0;
+      this.player.anims.pause();
+      if (!this.physics.world.isPaused) {
+          this.physics.pause();
+      }
+      this.syncUI();
+
+      if (this.puzzleTimer) this.puzzleTimer.remove();
+      this.puzzleTimer = this.time.delayedCall(puzzle.timeoutMs, () => {
+          if (this.activePuzzle === puzzle) {
+              this.resolvePuzzle(false);
+          }
+      });
+  }
+
+  /** Called from React when player taps a puzzle option. */
+  public resolvePuzzleAnswer(selectedIndex: number) {
+      if (!this.activePuzzle) return;
+      const isCorrect = selectedIndex === this.activePuzzle.correctIndex;
+      this.resolvePuzzle(isCorrect);
+  }
+
+  private resolvePuzzle(isCorrect: boolean) {
+      const puzzle = this.activePuzzle;
+      this.activePuzzle = null;
+      if (this.puzzleTimer) {
+          this.puzzleTimer.remove();
+          this.puzzleTimer = null;
+      }
+
+      if (puzzle) {
+          switch (puzzle.type) {
+              case 'STORM':
+                  if (isCorrect) {
+                      this.addScore(10);
+                      this.showFloatingText(this.player.x, this.player.y - 80, '+١٠ نجمة', '#ffd700');
+                  }
+                  break;
+              case 'LIBRARY':
+                  if (isCorrect) {
+                      this.addScore(20);
+                      this.showFloatingText(this.scale.width / 2, this.scale.height / 2 - 80, '+٢٠ نجمة', '#ffd700');
+                  }
+                  break;
+              case 'DUAL_PATH':
+                  if (isCorrect) {
+                      this.addScore(15);
+                      this.showFloatingText(this.player.x, this.player.y - 80, '+١٥ نجمة', '#ffd700');
+                  }
+                  break;
+          }
+      }
+
+      this.physics.resume();
+      this.player.anims.resume();
+      this.speedModifier = 1.0;
+      this.audioManager?.fadeBGMUp();
+      this.syncUI();
+  }
+
   private syncUI() {
       const progressPercent = this.getStageProgressPercent();
       this.onScoreUpdate({
@@ -781,7 +868,8 @@ export class MainScene extends Phaser.Scene {
           currentStage: this.currentStage,
           stageTitle: this.stageTitle === null ? null : this.stageTitle,
           soundEnabled: this.getSoundEnabled(),
-          musicEnabled: this.getMusicEnabled()
+          musicEnabled: this.getMusicEnabled(),
+          activePuzzle: this.activePuzzle
       });
   }
 

@@ -7,6 +7,18 @@ export interface NoorMessage {
     isSoftPause?: boolean; // If true, requires tap to dismiss/resume
 }
 
+// --- MINI PUZZLES (Storm / Library / Dual Path) ---
+export type PuzzleType = 'STORM' | 'LIBRARY' | 'DUAL_PATH';
+
+export interface ActivePuzzle {
+  type: PuzzleType;
+  prompt: string;
+  options: string[];
+  correctIndex: number;
+  /** Auto-timeout duration in ms (5–10 seconds). */
+  timeoutMs: number;
+}
+
 /** Shown after desert end or library event */
 export interface StageResultsData {
   stageName: string;
@@ -44,6 +56,8 @@ export interface GameState {
   soundEnabled?: boolean;
   /** Step 5 – Audio: BGM on/off (persisted in localStorage). */
   musicEnabled?: boolean;
+  /** Active mini-puzzle (storm / library / dual path); null when none. */
+  activePuzzle?: ActivePuzzle | null;
 }
 
 export interface Question {

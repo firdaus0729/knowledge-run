@@ -64,6 +64,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   // Juice
   private dustEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
   private ghostTimer: number = 0;
+  private wasJumpingLastFrame: boolean = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     if (!scene.textures.exists('playerSheet')) {
@@ -444,6 +445,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     if (onGround) {
+        if (this.wasJumpingLastFrame) {
+            (this.scene as { playSfx?: (t: string) => void }).playSfx?.('land');
+            this.wasJumpingLastFrame = false;
+        }
         this.isJumping = false;
         this.isReaching = false;
         this.coyoteTime = time + PHYSICS.COYOTE_TIME;
@@ -499,6 +504,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     this.wasHoldingJump = this.isHoldingJump;
+    this.wasJumpingLastFrame = this.isJumping;
   }
 
   public activateShield(duration: number = 10000) {

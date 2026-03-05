@@ -194,7 +194,7 @@ export class MagicGate extends Phaser.GameObjects.Container {
       if (this.isActivated) return;
       this.isActivated = true;
 
-      (this.scene as { playSfx?: (t: string) => void }).playSfx?.('gate');
+      (this.scene as { playSfx?: (t: string) => void }).playSfx?.('objectActivate');
 
       // A. RAMP UP EFFECTS - MASSIVE SIZE INCREASE
       

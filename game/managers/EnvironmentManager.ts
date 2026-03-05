@@ -5,8 +5,11 @@ import { Platform } from '../objects/Platform';
 import { Foreground } from '../objects/Foreground';
 import { RoadsideArchitecture } from '../objects/RoadsideArchitecture';
 import { MainScene } from '../scenes/MainScene';
+import { PROGRESS } from '../../constants';
 
 export type WorldZone = 'DESERT' | 'TRANSITION' | 'CITY' | 'LIBRARY';
+/** Visual sub‑zones inside the city – used for Step 5 environment progression. */
+export type CitySegment = 'CITY_ENTRANCE' | 'CITY_STREET' | 'CITY_MARKET' | 'CITY_BAYT';
 
 export class EnvironmentManager {
   private scene: MainScene;
@@ -18,6 +21,8 @@ export class EnvironmentManager {
   private currentZone: WorldZone = 'DESERT';
   private cityStartDistance: number = 0;
   private hasTriggeredLibrary: boolean = false;
+  /** Current visual segment while in CITY (entrance → streets → market → Bayt). */
+  private citySegment: CitySegment = 'CITY_ENTRANCE';
 
   constructor(scene: MainScene) {
     this.scene = scene;
@@ -41,11 +46,29 @@ export class EnvironmentManager {
 
   /** Distance in meters into city before library – part of Stage 2 progression (tunable) */
   private readonly LIBRARY_TRIGGER_DISTANCE = 250;
+  /** Distance bands inside Stage 2 (city) to drive visual progression. */
+  private readonly CITY_ENTRANCE_MAX = 120; // Just inside the gate
+  private readonly CITY_STREET_MAX = 260;   // Simple streets
+  private readonly CITY_MARKET_MAX = 400;   // Market / dense core (Bayt after this)
 
   private checkZoneProgression() {
-      if (this.currentZone === 'CITY' && !this.hasTriggeredLibrary) {
+      if (this.currentZone === 'CITY') {
           const distInCity = this.scene.getRunDistance() - this.cityStartDistance;
-          if (distInCity >= this.LIBRARY_TRIGGER_DISTANCE) {
+
+          // 1) Visual progression – update city segment based on distance bands
+          if (distInCity < this.CITY_ENTRANCE_MAX) {
+              this.citySegment = 'CITY_ENTRANCE';
+          } else if (distInCity < this.CITY_STREET_MAX) {
+              this.citySegment = 'CITY_STREET';
+          } else if (distInCity < this.CITY_MARKET_MAX) {
+              this.citySegment = 'CITY_MARKET';
+          } else {
+              // Final stretch – approaching Bayt Al‑Hikma
+              this.citySegment = 'CITY_BAYT';
+          }
+
+          // 2) Library trigger (Bayt Al‑Hikma entry) – still part of Stage 2
+          if (!this.hasTriggeredLibrary && distInCity >= this.LIBRARY_TRIGGER_DISTANCE) {
               this.hasTriggeredLibrary = true;
               this.scene.eventManager.triggerLibraryDiscovery();
           }
@@ -57,6 +80,7 @@ export class EnvironmentManager {
       
       this.currentZone = 'TRANSITION';
       this.cityStartDistance = this.scene.getRunDistance(); // Mark entry point
+      this.citySegment = 'CITY_ENTRANCE';
       
       // 1. Fade Background
       this.background.transitionToCity(4000);
@@ -109,5 +133,10 @@ export class EnvironmentManager {
   
   public getZone(): WorldZone {
       return this.currentZone;
+  }
+
+  /** Returns current city visual segment (entrance / streets / market / Bayt). */
+  public getCitySegment(): CitySegment {
+      return this.citySegment;
   }
 }

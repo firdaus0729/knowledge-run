@@ -168,6 +168,49 @@ export class Platform {
       this.floatingPlatforms.add(plat);
   }
 
+  /**
+   * Step 6 – Moving platforms.
+   *
+   * Creates a floating platform that gently moves either vertically or horizontally
+   * to add timing challenge. Movement is always subtle so jumps remain fair.
+   */
+  public spawnMovingPlatform(
+      x: number,
+      y: number,
+      widthScale: number,
+      direction: 'vertical' | 'horizontal',
+      amplitude: number = 40,
+      periodMs: number = 1600
+  ) {
+      const plat = this.scene.physics.add.sprite(x, y, this.currentFloatingKey);
+      plat.setImmovable(true);
+      (plat.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+      plat.setScale(widthScale, 1);
+      plat.body.setSize(plat.width, 20);
+      plat.body.setOffset(0, 0);
+      plat.setDepth(10);
+      plat.body.checkCollision.down = false;
+      plat.body.checkCollision.left = false;
+      plat.body.checkCollision.right = false;
+      this.floatingPlatforms.add(plat);
+
+      const tweenConfig: Phaser.Types.Tweens.TweenBuilderConfig = {
+          targets: plat,
+          duration: periodMs / 2,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.inOut'
+      };
+
+      if (direction === 'vertical') {
+          tweenConfig['y'] = y + amplitude;
+      } else {
+          tweenConfig['x'] = x + amplitude;
+      }
+
+      this.scene.tweens.add(tweenConfig);
+  }
+
   public spawnBridgeSegment(x: number, y: number) {
       const segment = this.scene.physics.add.sprite(x, y, 'holo_bridge_segment');
       segment.setImmovable(true);

@@ -112,6 +112,7 @@ export class NurController {
       secondaryMessage?: string;
     }
   ) {
+    (this.scene as { playSfx?: (t: string) => void }).playSfx?.('noorAppear');
     const { width, height } = this.scene.scale;
     const pos = options?.position || 'top';
 

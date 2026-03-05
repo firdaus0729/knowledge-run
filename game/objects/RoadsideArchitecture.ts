@@ -83,7 +83,8 @@ export class RoadsideArchitecture {
       if (this.scene.eventManager.eventPhase !== 'NONE') return;
 
       // @ts-ignore
-      const zone = this.scene.environmentManager ? this.scene.environmentManager.getZone() : 'DESERT';
+      const env = this.scene.environmentManager;
+      const zone = env ? env.getZone() : 'DESERT';
 
       if (zone === 'LIBRARY') {
           this.updateLibraryLogic(dt);
@@ -91,7 +92,8 @@ export class RoadsideArchitecture {
           this.updateDesertLogic(dt);
       } else {
           // CITY & TRANSITION
-          this.updateCityLogic(dt);
+          const segment = env && env.getCitySegment ? env.getCitySegment() : 'CITY_ENTRANCE';
+          this.updateCityLogic(dt, segment);
       }
   }
 
@@ -151,49 +153,66 @@ export class RoadsideArchitecture {
       }
   }
 
-  private updateCityLogic(dt: number) {
+  /** Step 5 – City progression: richer decorations as we move deeper (segment). */
+  private updateCityLogic(dt: number, segment: 'CITY_ENTRANCE' | 'CITY_STREET' | 'CITY_MARKET' | 'CITY_BAYT') {
       this.shopTimer += dt;
       this.fountainTimer += dt;
       this.palmTimer += dt;
       this.lampTimer += dt;
       
-      // Shops
-      if (this.shopTimer > 15000) {
-          this.shopTimer = 0;
-          this.pendingShops = 2; 
-          this.shopCooldown = 0; 
-      }
-      if (this.pendingShops > 0) {
-          this.shopCooldown -= dt;
-          if (this.shopCooldown <= 0) {
-              if (this.trySpawnShop()) {
-                  this.pendingShops--;
-                  this.shopCooldown = 2500;
-              } else {
-                  this.shopCooldown = 500; 
+      // Shops – only in the MARKET core (and a bit in CITY_STREET)
+      if (segment === 'CITY_MARKET' || segment === 'CITY_STREET') {
+          if (this.shopTimer > 15000) {
+              this.shopTimer = 0;
+              this.pendingShops = segment === 'CITY_MARKET' ? 3 : 1;
+              this.shopCooldown = 0; 
+          }
+          if (this.pendingShops > 0) {
+              this.shopCooldown -= dt;
+              if (this.shopCooldown <= 0) {
+                  if (this.trySpawnShop()) {
+                      this.pendingShops--;
+                      this.shopCooldown = 2500;
+                  } else {
+                      this.shopCooldown = 500; 
+                  }
               }
           }
       }
 
-      // Fountains
-      if (this.fountainTimer > this.nextFountainTime) {
-          this.fountainTimer = 0;
-          this.nextFountainTime = Phaser.Math.Between(23000, 30000);
-          this.trySpawnFountain();
+      // Fountains – occasional in streets/market, rare near Bayt, none at gate
+      if (segment !== 'CITY_ENTRANCE') {
+          if (this.fountainTimer > this.nextFountainTime) {
+              this.fountainTimer = 0;
+              this.nextFountainTime = Phaser.Math.Between(
+                  segment === 'CITY_MARKET' ? 18000 : 23000,
+                  30000
+              );
+              this.trySpawnFountain();
+          }
       }
 
-      // Palms (Urban - More Frequent)
+      // Palms (urban greenery) – some in streets/market, very few at entrance/Bayt
       if (this.palmTimer > this.nextPalmTime) {
           this.palmTimer = 0;
           this.nextPalmTime = Phaser.Math.Between(10000, 15000);
-          const count = Phaser.Math.RND.weightedPick([0, 0, 1, 1, 1, 2, 2, 2, 3, 3]);
+          let count = 0;
+          if (segment === 'CITY_MARKET') {
+              count = Phaser.Math.RND.weightedPick([0, 1, 1, 2, 2, 3]);
+          } else if (segment === 'CITY_STREET') {
+              count = Phaser.Math.RND.weightedPick([0, 0, 1, 1, 2]);
+          } else {
+              count = Phaser.Math.RND.weightedPick([0, 0, 0, 1]);
+          }
           if (count > 0) this.spawnPalmCluster(count);
       }
 
-      // Lamps
+      // Lamps – exist everywhere in CITY, slightly denser deeper in
       if (this.lampTimer > this.nextLampTime) {
           this.lampTimer = 0;
-          this.nextLampTime = Phaser.Math.Between(3000, 6000);
+          const baseMin = segment === 'CITY_ENTRANCE' ? 4000 : 2500;
+          const baseMax = segment === 'CITY_MARKET' ? 4500 : 6000;
+          this.nextLampTime = Phaser.Math.Between(baseMin, baseMax);
           this.trySpawnLamp();
       }
   }

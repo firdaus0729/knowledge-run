@@ -38,6 +38,8 @@ export class SpawnManager {
   // Logic Control
   private lastSpawnType: string = 'NONE';
   private spawnQueue: { type: string, delay: number, yOffset?: number }[] = [];
+  /** Ensure dual‑path choice appears at least once in Stage 2 city. */
+  private forcedDualPathShown: boolean = false;
 
   constructor(scene: MainScene) {
     this.scene = scene;
@@ -284,11 +286,14 @@ export class SpawnManager {
           } else {
               // CITY PATTERNS
               if (currentStage === 2) {
-                  // STAGE 2: Organized, Verticality, "Flow"
+                  // STAGE 2: Organized, Verticality, "Flow" + new mechanics
                   patterns = [
                       'MERCHANT_CART', 'STACK_OF_RUGS', 'ROOFTOP_START', // Trigger sequence
                       'PLATFORM_SIMPLE_HOP', 'FREE_STARS', 'STREET_CAT',
-                      'PLATFORM_MINI_STAIRS'
+                      'PLATFORM_MINI_STAIRS',
+                      'MOVING_PLATFORM_VERTICAL', 'MOVING_PLATFORM_HORIZONTAL',
+                      'RISING_PILLAR',
+                      'DUAL_PATH_EASY_HARD', 'DUAL_PATH_EASY_HARD' // slightly higher weight
                   ];
               } else {
                   // HARDER CITY
@@ -296,10 +301,31 @@ export class SpawnManager {
                      'SINGLE_ROCK', 'MERCHANT_CART', 'STACK_OF_RUGS', 'ROOFTOP_START', 'SPIKE_TRAP', 
                      'PLATFORM_SIMPLE_HOP', 'PLATFORM_MINI_STAIRS', 'FREE_STARS', 
                      'SPLIT_PATH_CAVE', 'SHOP_DROP_BOUNCE', 'PLATFORM_BRIDGE',
+                     'MOVING_PLATFORM_VERTICAL', 'MOVING_PLATFORM_HORIZONTAL',
+                     'RISING_PILLAR', 'DUAL_PATH_EASY_HARD',
                      'SCORPION_HUNT', 'ARFAJ_PATCH', 'STREET_CAT'
                   ];
               }
           }
+      }
+
+      // GUARANTEED DUAL PATH: Once per Stage 2 city run, force the dual‑path pattern
+      // so the player definitely experiences it at least once.
+      if (zone === 'CITY' && currentStage === 2 && !this.forcedDualPathShown && !isShopHere) {
+          const baseDelayForced = this.applySpawnLogic('DUAL_PATH_EASY_HARD', x, groundY);
+          this.lastSpawnType = 'DUAL_PATH_EASY_HARD';
+          this.forcedDualPathShown = true;
+          // Show a quick knowledge puzzle associated with the dual-path decision
+          this.scene.showPuzzle({
+              type: 'DUAL_PATH',
+              prompt: 'أيُّ طريقٍ تعتقد أنه الأصعب… والأغنى بالنجوم؟ اختر الرمز الذي يمثّل التحدي الأكبر.',
+              options: ['🌙', '⭐', '🔥'],
+              correctIndex: 2,
+              timeoutMs: 6000
+          });
+          const difficultyForced = Math.max(0.6, 1.0 - ((currentStage - 1) * 0.15));
+          this.nextSpawnTime = (baseDelayForced * difficultyForced) + Phaser.Math.Between(-200, 300);
+          return;
       }
 
       // IMPOSSIBLE JUMP FILTER
@@ -560,6 +586,49 @@ export class SpawnManager {
               this.addStar(x + 480, groundY - 180);
               baseDelay = 4000;
               break;
+          // --- NEW STEP 6 PATTERNS ---
+          case 'MOVING_PLATFORM_VERTICAL':
+              // Gentle vertical moving platform – mostly in city
+              platform.spawnMovingPlatform(x, groundY - 120, 1.5, 'vertical', 40, 1800);
+              this.addStar(x, groundY - 190);
+              baseDelay = 2600;
+              break;
+          case 'MOVING_PLATFORM_HORIZONTAL':
+              // Horizontal drift platform – same height, small side movement
+              platform.spawnMovingPlatform(x, groundY - 150, 1.5, 'horizontal', 60, 2000);
+              this.addStar(x, groundY - 220);
+              baseDelay = 2800;
+              break;
+          case 'RISING_PILLAR':
+              // Rising pillar from ground – appears mostly in city
+              const startY = groundY + 80;
+              const pillar = new Obstacle(this.scene, x, startY, 'pillar');
+              this.obstacles.add(pillar);
+              this.scene.tweens.add({
+                  targets: pillar,
+                  y: groundY,
+                  duration: 600,
+                  ease: 'Sine.out'
+              });
+              this.addStar(x, groundY - 180);
+              baseDelay = 2600;
+              break;
+          case 'DUAL_PATH_EASY_HARD':
+              // Dual path choice:
+              // Lower path: simple ground obstacle + few stars (easier).
+              this.obstacles.add(new Obstacle(this.scene, x + 120, groundY, 'spikes'));
+              this.addStar(x + 120, groundY - 150);
+
+              // Upper path: moving platforms with more reward (harder).
+              const upperY = groundY - 180;
+              platform.spawnMovingPlatform(x, upperY, 1.2, 'vertical', 40, 1800);
+              platform.spawnMovingPlatform(x + 260, upperY - 40, 1.4, 'horizontal', 60, 2000);
+              this.addStar(x, upperY - 60);
+              this.addStar(x + 260, upperY - 80);
+              this.shieldsGroup.add(new ShieldItem(this.scene, x + 260, upperY - 100));
+
+              baseDelay = 4200;
+              break;
       }
       return baseDelay;
   }
@@ -576,6 +645,7 @@ export class SpawnManager {
       this.spawnCount = 0;
       this.spawnQueue = [];
       this.lastSpawnType = 'NONE';
+      this.forcedDualPathShown = false;
       
       this.stars.clear(true, true);
       this.heartsGroup.clear(true, true);

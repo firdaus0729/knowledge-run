@@ -12,7 +12,7 @@ interface GameUIProps {
   onMusicToggle?: () => void;
 }
 
-export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, onMessageDismiss, onSoundToggle, onMusicToggle }) => {
+export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, onMessageDismiss, onSoundToggle, onMusicToggle, onPuzzleAnswer }) => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showResult, setShowResult] = useState<'correct' | 'wrong' | null>(null);
 
@@ -129,6 +129,32 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
 
   return (
     <div className="font-['Cairo']" dir="rtl">
+
+      {/* MINI PUZZLE OVERLAY (Storm / Library / Dual Path) */}
+      {gameState.activePuzzle && onPuzzleAnswer && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#1a1625]/95 border border-[#ffd700]/50 rounded-3xl px-5 py-6 w-[90%] max-w-md text-center shadow-2xl">
+            <p className="text-[#ffd700] text-lg md:text-xl font-black mb-4">
+              لغز صغير ✨
+            </p>
+            <p className="text-white text-sm md:text-base leading-relaxed mb-5">
+              {gameState.activePuzzle.prompt}
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {gameState.activePuzzle.options.map((opt, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => onPuzzleAnswer(idx)}
+                  className="pointer-events-auto min-w-[72px] min-h-[44px] px-4 py-2 rounded-2xl bg-black/60 border border-[#ffd700]/60 text-white font-bold text-sm md:text-base hover:bg-[#ffd700]/20 transition-colors"
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Step 2: Stage title overlay (Arabic) – fade in, then fade out when cleared */}
       {stageTitleDisplay && (

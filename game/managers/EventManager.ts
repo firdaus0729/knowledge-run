@@ -375,6 +375,7 @@ export class EventManager {
       this.currentGate = new MagicGate(this.scene, spawnX, groundY - 50);
       this.isEncounterActive = true;
       this.encounterType = 'GATE';
+      this.scene.playSfx('eventAppear');
   }
 
   private triggerGateArrival() {
@@ -553,7 +554,17 @@ export class EventManager {
                   // Bayt Al-Hikma: show subtitle 2–3 s, then Noor message, then resume running (game ends at full city distance)
                   this.scene.showStageTitle('بيت الحكمة', 2500, () => {
                       this.scene.showNoorMessage('أهلاً بك في بيت الحكمة… هنا نهاية الرحلة وبداية العلم. 📚', false, 'greet');
-                      this.scene.time.delayedCall(4500, () => this.resumeRunInLibrary());
+                      // Short intellectual puzzle while inside Bayt Al-Hikma
+                      this.scene.time.delayedCall(2000, () => {
+                          this.scene.showPuzzle({
+                              type: 'LIBRARY',
+                              prompt: 'أيُّ هذه الرموز يعبِّر أكثر عن بيت الحكمة؟',
+                              options: ['📚', '⚔️', '🏹'],
+                              correctIndex: 0,
+                              timeoutMs: 8000
+                          });
+                      });
+                      this.scene.time.delayedCall(9000, () => this.resumeRunInLibrary());
                   });
               });
           });
@@ -619,7 +630,17 @@ export class EventManager {
       // Safe inside the tent – happy/safe expression
       this.scene.showNoorMessage("الحمد لله! نحن في أمان هنا. 🏕️", false, 'success');
       this.scene.replenishHealth(); 
-      this.scene.time.delayedCall(3000, () => {
+      // Small thinking puzzle during the storm (Step 6 – Storm puzzle)
+      this.scene.time.delayedCall(1500, () => {
+          this.scene.showPuzzle({
+              type: 'STORM',
+              prompt: 'انظر إلى النمط التالي: ★ ☆ ★ ☆ ؟ ما الرمز التالي في السلسلة؟',
+              options: ['★', '☆', '⚪️'],
+              correctIndex: 0,
+              timeoutMs: 7000
+          });
+      });
+      this.scene.time.delayedCall(7000, () => {
           this.triggerCutscene();
       });
   }
@@ -651,6 +672,7 @@ export class EventManager {
   }
 
   private resumeRunFromShelter() {
+      this.scene.audioManager?.fadeBGMUp();
       this.scene.clearQuestionAndResumePhysics();
       this.scene.player.isScripted = false;
       this.scene.player.stopStruggle();
@@ -710,6 +732,7 @@ export class EventManager {
       this.isEncounterActive = true;
       this.encounterType = 'CHEST';
       this.isEncounterOpening = false;
+      this.scene.playSfx('eventAppear');
       const onPlatform = Math.random() > 0.4;
       if (onPlatform) {
           const platY = groundY - 100;
