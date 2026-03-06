@@ -8,6 +8,7 @@ import { BedouinTent } from '../objects/BedouinTent';
 import { LibraryBuilding } from '../objects/LibraryBuilding';
 import { MagicCarpet } from '../objects/MagicCarpet';
 import { Obstacle } from '../objects/Obstacle';
+import type { ActivePuzzle } from '../../types';
 
 export type EventPhase = 
     'NONE' | 
@@ -62,6 +63,8 @@ export class EventManager {
   private libraryEventTriggered: boolean = false;
   private carpetTimer: number = 0;
   private hasTransitionedToCity: boolean = false;
+  /** How the magic carpet is being used (library transition vs. short side path in city). */
+  private carpetMode: 'LIBRARY' | 'CITY_SIDE' = 'LIBRARY';
 
   /** Distance in meters within library zone before carpet spawns (tunable) */
   public readonly STAGE_2_LENGTH_M = PROGRESS.STAGE_2_LENGTH_M;
@@ -73,6 +76,15 @@ export class EventManager {
   
   // Tutorial Flags for Flow
   private hasTriggeredRooftopTutorial: boolean = false;
+
+  // Puzzle sequences (storm: 3–5 puzzles; library: 3–5 puzzles)
+  private stormPuzzleQueue: ActivePuzzle[] = [];
+  private stormPuzzleIndex: number = 0;
+  private libraryPuzzleQueue: ActivePuzzle[] = [];
+  private libraryPuzzleIndex: number = 0;
+  /** When true, carpet overlap shows a puzzle; correct = ride, wrong = Bayt path. */
+  private carpetGatePending: boolean = false;
+  private libraryPuzzleSequenceActive: boolean = false;
 
   constructor(scene: MainScene) {
     this.scene = scene;
@@ -154,14 +166,15 @@ export class EventManager {
                platform.groundTile.y += 3;
           }
 
-          // Trigger visual transition mid-flight when ground is hidden
-          if (this.carpetTimer > 2000 && !this.hasTransitionedToCity) {
+          // Trigger visual transition mid-flight when ground is hidden (library -> city only)
+          if (this.carpetMode === 'LIBRARY' && this.carpetTimer > 2000 && !this.hasTransitionedToCity) {
               this.hasTransitionedToCity = true;
               this.scene.environmentManager.transitionLibraryToCity();
           }
 
-          // End flight after duration
-          if (this.carpetTimer > 15000) {
+          // End flight after duration (shorter when used as a side path in the city)
+          const maxDuration = this.carpetMode === 'LIBRARY' ? 15000 : 7000;
+          if (this.carpetTimer > maxDuration) {
               this.endCarpetRide();
           }
       }
@@ -270,7 +283,51 @@ export class EventManager {
       
       this.currentCarpet = new MagicCarpet(this.scene, spawnX, groundY);
       this.encounterType = 'CARPET';
+      this.carpetMode = 'LIBRARY';
       this.scene.showNoorMessage("انظر! بساط الريح السحري! اقفز عليه! 🧞‍♂️", false, 'greet');
+  }
+
+  /** Spawn a Magic Carpet reachable via the city dual‑path choice (short side path, not a new stage). */
+  public spawnDualPathMagicCarpet(spawnX: number, groundY: number) {
+      this.currentCarpet = new MagicCarpet(this.scene, spawnX, groundY);
+      this.encounterType = 'CARPET';
+      this.carpetMode = 'CITY_SIDE';
+      this.carpetGatePending = false;
+      this.scene.showNoorMessage("هنا طريق قصير على بساط الريح… وبعده نعود إلى بيت الحكمة.", false, 'greet');
+  }
+
+  /** True when the current carpet is the city dual-path one (puzzle required before ride). */
+  public getCarpetGateRequired(): boolean {
+      return this.carpetMode === 'CITY_SIDE' && this.currentCarpet != null;
+  }
+
+  /** Called when player overlaps the dual-path carpet: show puzzle instead of instant ride. */
+  public onCarpetOverlap(): void {
+      if (!this.currentCarpet?.active || this.carpetGatePending) return;
+      this.carpetGatePending = true;
+      this.scene.showPuzzle({
+          type: 'CARPET_GATE',
+          prompt: 'أجب لإثبات أهليتك لركوب البساط: أيّ رمز يمثّل المغامرة؟',
+          options: ['🌟', '📚', '🏠'],
+          correctIndex: 0,
+          timeoutMs: 6000
+      });
+  }
+
+  /** Called by MainScene when CARPET_GATE puzzle is resolved. Correct = ride; wrong = Bayt path. */
+  public finishCarpetGatePuzzle(isCorrect: boolean) {
+      this.carpetGatePending = false;
+      if (isCorrect) {
+          this.triggerCarpetRide();
+      } else {
+          if (this.currentCarpet?.active) {
+              this.currentCarpet.destroy();
+              this.currentCarpet = null;
+          }
+          this.encounterType = 'NONE';
+          this.isEncounterActive = false;
+          this.scene.showNoorMessage("نكمل طريقنا إلى بيت الحكمة. 🏛️", false, 'greet');
+      }
   }
 
   public triggerCarpetRide() {
@@ -327,8 +384,9 @@ export class EventManager {
           onComplete: () => {
               this.scene.player.stopFlying(); // Land
               this.scene.setGameSpeed(1.0);
-              // Ensure we are fully in City mode logic
-              this.scene.environmentManager.finalizeCityTransition();
+                   // Ensure we are fully in City mode logic after library ride.
+                   // For city side‑path usage, this is a no‑op if we were already in the city.
+                   this.scene.environmentManager.finalizeCityTransition();
           }
       });
   }
@@ -551,20 +609,20 @@ export class EventManager {
               this.scene.cameras.main.once('camerafadeincomplete', () => {
                   this.scene.player.isScripted = false;
                   this.scene.setGameSpeed(0);
-                  // Bayt Al-Hikma: show subtitle 2–3 s, then Noor message, then resume running (game ends at full city distance)
                   this.scene.showStageTitle('بيت الحكمة', 2500, () => {
                       this.scene.showNoorMessage('أهلاً بك في بيت الحكمة… هنا نهاية الرحلة وبداية العلم. 📚', false, 'greet');
-                      // Short intellectual puzzle while inside Bayt Al-Hikma
+                      // 3–5 short puzzles in sequence (placeholder; replace with your puzzles later)
+                      this.libraryPuzzleQueue = [
+                          { type: 'LIBRARY', prompt: 'أيُّ هذه الرموز يعبِّر أكثر عن بيت الحكمة؟', options: ['📚', '⚔️', '🏹'], correctIndex: 0, timeoutMs: 8000 },
+                          { type: 'LIBRARY', prompt: 'ما الذي يرمز إلى العلم؟', options: ['📖', '🗡️', '🛡️'], correctIndex: 0, timeoutMs: 8000 },
+                          { type: 'LIBRARY', prompt: 'اختر الرمز الذي يمثّل الحكمة.', options: ['🦉', '🐺', '🦅'], correctIndex: 0, timeoutMs: 8000 },
+                          { type: 'LIBRARY', prompt: 'أيُّ لون يُذكّر بالمعرفة والذهب؟', options: ['🟡', '🔴', '🔵'], correctIndex: 0, timeoutMs: 8000 }
+                      ];
+                      this.libraryPuzzleIndex = 0;
+                      this.libraryPuzzleSequenceActive = true;
                       this.scene.time.delayedCall(2000, () => {
-                          this.scene.showPuzzle({
-                              type: 'LIBRARY',
-                              prompt: 'أيُّ هذه الرموز يعبِّر أكثر عن بيت الحكمة؟',
-                              options: ['📚', '⚔️', '🏹'],
-                              correctIndex: 0,
-                              timeoutMs: 8000
-                          });
+                          this.scene.showPuzzle(this.libraryPuzzleQueue[0]);
                       });
-                      this.scene.time.delayedCall(9000, () => this.resumeRunInLibrary());
                   });
               });
           });
@@ -627,22 +685,49 @@ export class EventManager {
 
   private startShelterInteraction() {
       if (this.refugeTent && this.refugeTent.active) this.refugeTent.setOccupied(true);
-      // Safe inside the tent – happy/safe expression
       this.scene.showNoorMessage("الحمد لله! نحن في أمان هنا. 🏕️", false, 'success');
-      this.scene.replenishHealth(); 
-      // Small thinking puzzle during the storm (Step 6 – Storm puzzle)
+      this.scene.replenishHealth();
+      // 3–5 short puzzles in sequence (placeholder content; replace with your puzzles later)
+      this.stormPuzzleQueue = [
+          { type: 'STORM', prompt: 'انظر إلى النمط: ★ ☆ ★ ☆ ؟ ما الرمز التالي؟', options: ['★', '☆', '⚪️'], correctIndex: 0, timeoutMs: 7000 },
+          { type: 'STORM', prompt: 'ما الشكل الذي يكمل التسلسل؟ ◯ □ ◯ □ ؟', options: ['◯', '□', '△'], correctIndex: 0, timeoutMs: 7000 },
+          { type: 'STORM', prompt: 'اختر الرمز الذي يمثّل المعرفة.', options: ['📚', '⚔️', '🏹'], correctIndex: 0, timeoutMs: 7000 },
+          { type: 'STORM', prompt: 'أيُّ لون يُذكّر بالصحراء؟', options: ['🟡', '🔵', '🟢'], correctIndex: 0, timeoutMs: 7000 }
+      ];
+      this.stormPuzzleIndex = 0;
       this.scene.time.delayedCall(1500, () => {
-          this.scene.showPuzzle({
-              type: 'STORM',
-              prompt: 'انظر إلى النمط التالي: ★ ☆ ★ ☆ ؟ ما الرمز التالي في السلسلة؟',
-              options: ['★', '☆', '⚪️'],
-              correctIndex: 0,
-              timeoutMs: 7000
-          });
+          this.scene.showPuzzle(this.stormPuzzleQueue[0]);
       });
-      this.scene.time.delayedCall(7000, () => {
-          this.triggerCutscene();
-      });
+  }
+
+  /** Called by MainScene after any puzzle is resolved; advances storm/library sequence or no-op. */
+  public reportPuzzleResolved(isCorrect: boolean) {
+      if (this.stormPuzzleQueue.length > 0 && this.eventPhase === 'SANDSTORM_SHELTER') {
+          this.stormPuzzleIndex++;
+          if (this.stormPuzzleIndex < this.stormPuzzleQueue.length) {
+              this.scene.time.delayedCall(600, () => {
+                  this.scene.showPuzzle(this.stormPuzzleQueue[this.stormPuzzleIndex]);
+              });
+          } else {
+              this.stormPuzzleQueue = [];
+              this.stormPuzzleIndex = 0;
+              this.triggerCutscene();
+          }
+          return;
+      }
+      if (this.libraryPuzzleQueue.length > 0 && this.libraryPuzzleSequenceActive) {
+          this.libraryPuzzleIndex++;
+          if (this.libraryPuzzleIndex < this.libraryPuzzleQueue.length) {
+              this.scene.time.delayedCall(600, () => {
+                  this.scene.showPuzzle(this.libraryPuzzleQueue[this.libraryPuzzleIndex]);
+              });
+          } else {
+              this.libraryPuzzleQueue = [];
+              this.libraryPuzzleIndex = 0;
+              this.libraryPuzzleSequenceActive = false;
+              this.resumeRunInLibrary();
+          }
+      }
   }
 
   private triggerCutscene() {

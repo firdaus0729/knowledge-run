@@ -10,9 +10,13 @@ export class CityPlatformGenerator {
         if (scene.textures.exists('floating_plat_city')) {
             scene.textures.remove('floating_plat_city');
         }
+        if (scene.textures.exists('floating_plat_city_bridge')) {
+            scene.textures.remove('floating_plat_city_bridge');
+        }
 
         this.generateCityGround(scene);
         this.generateCityFloatingPlatform(scene);
+        this.generateCityBridge(scene);
     }
 
     private static generateCityGround(scene: Phaser.Scene) {
@@ -130,6 +134,7 @@ export class CityPlatformGenerator {
         canvas.refresh();
     }
 
+    /** Andalusian-style floating platform: stone slab with arch, decorative band, walkable surface. */
     private static generateCityFloatingPlatform(scene: Phaser.Scene) {
         const W = 160;
         const H = 54;
@@ -137,52 +142,122 @@ export class CityPlatformGenerator {
         if (!canvas) return;
         const ctx = canvas.context;
 
-        // --- 1. Floating Stone Block (Matches ground style) ---
-        const slabH = 24;
-        const slabY = 10;
+        const slabH = 28;
+        const slabY = 8;
+        const walkH = 12;
 
-        // Main Block
-        const grd = ctx.createLinearGradient(0, slabY, 0, slabY + slabH);
-        grd.addColorStop(0, '#7e57c2');
-        grd.addColorStop(1, '#4527a0');
-        ctx.fillStyle = grd;
-        
+        // --- 1. Stone base (warm sand/limestone) ---
+        const stoneGrd = ctx.createLinearGradient(0, slabY + slabH, 0, slabY);
+        stoneGrd.addColorStop(0, '#8d6e63');
+        stoneGrd.addColorStop(0.5, '#bcaaa4');
+        stoneGrd.addColorStop(1, '#d7ccc8');
+        ctx.fillStyle = stoneGrd;
         ctx.beginPath();
-        ctx.roundRect(0, slabY, W, slabH, 8);
+        ctx.roundRect(4, slabY, W - 8, slabH, 6);
         ctx.fill();
 
-        // Bright Gold Border
-        ctx.strokeStyle = '#ffc107';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(2, slabY + 2, W-4, slabH - 4);
+        // --- 2. Horseshoe arch silhouette under the slab (Andalusian) ---
+        ctx.fillStyle = 'rgba(94, 53, 59, 0.85)';
+        ctx.beginPath();
+        const archTop = slabY + slabH - 4;
+        const archW = W * 0.7;
+        const archCx = W / 2;
+        ctx.moveTo(archCx - archW / 2, archTop);
+        ctx.quadraticCurveTo(archCx - archW / 2, slabY - 6, archCx, slabY + 6);
+        ctx.quadraticCurveTo(archCx + archW / 2, slabY - 6, archCx + archW / 2, archTop);
+        ctx.lineTo(archCx + archW / 2, H);
+        ctx.lineTo(archCx - archW / 2, H);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#5d4037';
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
-        // --- 2. Magic Carpet Draped Over Top ---
-        const rugH = 14;
-        const rugGrd = ctx.createLinearGradient(0, 0, 0, rugH);
-        rugGrd.addColorStop(0, '#e91e63'); // Vibrant Pink/Red
-        rugGrd.addColorStop(1, '#880e4f');
-        ctx.fillStyle = rugGrd;
-        
-        // Rug Shape with hanging tassels
-        ctx.fillRect(4, 0, W-8, rugH); // Top surface
-        
-        // Tassels
-        ctx.fillStyle = '#ffca28';
-        for(let x=6; x<W-6; x+=8) {
-            ctx.fillRect(x, rugH, 3, 5);
+        // --- 3. Decorative band (gold / terracotta) on walkable edge ---
+        const bandGrd = ctx.createLinearGradient(0, 0, 0, walkH);
+        bandGrd.addColorStop(0, '#ffecb3');
+        bandGrd.addColorStop(0.5, '#ffc107');
+        bandGrd.addColorStop(1, '#ff8f00');
+        ctx.fillStyle = bandGrd;
+        ctx.fillRect(0, 0, W, walkH);
+        ctx.fillStyle = '#4a148c';
+        for (let i = 0; i < W; i += 24) {
+            ctx.beginPath();
+            ctx.arc(i + 12, walkH / 2, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.strokeStyle = '#ffc107';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(1, 1, W - 2, walkH - 2);
+
+        // --- 4. Shadow under slab ---
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(8, slabY + slabH, W - 16, 6);
+
+        canvas.refresh();
+    }
+
+    /** Bridge segment: arched stone span for dual-path and bridge patterns. */
+    private static generateCityBridge(scene: Phaser.Scene) {
+        const W = 160;
+        const H = 54;
+        const canvas = scene.textures.createCanvas('floating_plat_city_bridge', W, H);
+        if (!canvas) return;
+        const ctx = canvas.context;
+
+        const deckH = 14;
+        const archTop = 22;
+
+        // Stone deck (walkable)
+        const deckGrd = ctx.createLinearGradient(0, deckH, 0, 0);
+        deckGrd.addColorStop(0, '#a1887f');
+        deckGrd.addColorStop(1, '#d7ccc8');
+        ctx.fillStyle = deckGrd;
+        ctx.beginPath();
+        ctx.roundRect(0, 0, W, deckH, 4);
+        ctx.fill();
+
+        // Gold trim strip
+        ctx.fillStyle = '#ffc107';
+        ctx.fillRect(0, deckH - 3, W, 3);
+        ctx.fillStyle = '#4a148c';
+        for (let i = 0; i < W; i += 20) {
+            ctx.fillRect(i + 8, deckH - 2, 4, 2);
         }
 
-        // --- 3. Levitation Energy (Bottom) ---
-        const energyGrd = ctx.createLinearGradient(0, slabY + slabH, 0, H);
-        energyGrd.addColorStop(0, 'rgba(0, 229, 255, 0.8)'); // Bright Cyan
-        energyGrd.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = energyGrd;
-        
-        // Rune Crystal shape at bottom
+        // Two small arches beneath (Moorish style)
+        ctx.fillStyle = 'rgba(94, 53, 59, 0.9)';
+        ctx.strokeStyle = '#5d4037';
+        ctx.lineWidth = 2;
+        const drawArch = (cx: number) => {
+            const w = 36;
+            ctx.beginPath();
+            ctx.moveTo(cx - w / 2, archTop);
+            ctx.quadraticCurveTo(cx - w / 2, deckH - 2, cx, deckH + 4);
+            ctx.quadraticCurveTo(cx + w / 2, deckH - 2, cx + w / 2, archTop);
+            ctx.lineTo(cx + w / 2, H);
+            ctx.lineTo(cx - w / 2, H);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        };
+        drawArch(W * 0.3);
+        drawArch(W * 0.7);
+
+        // Geometric inlay (8-point star hint)
+        ctx.fillStyle = 'rgba(255, 193, 7, 0.4)';
         ctx.beginPath();
-        ctx.moveTo(W/2 - 15, slabY + slabH - 2);
-        ctx.lineTo(W/2 + 15, slabY + slabH - 2);
-        ctx.lineTo(W/2, H);
+        const cx = W / 2;
+        const cy = deckH / 2;
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+            const r = i % 2 === 0 ? 6 : 3;
+            const x = cx + Math.cos(a) * r;
+            const y = cy + Math.sin(a) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
         ctx.fill();
 
         canvas.refresh();

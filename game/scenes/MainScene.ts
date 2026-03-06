@@ -841,9 +841,18 @@ export class MainScene extends Phaser.Scene {
                       this.showFloatingText(this.player.x, this.player.y - 80, '+١٥ نجمة', '#ffd700');
                   }
                   break;
+              case 'CARPET_GATE':
+                  this.eventManager.finishCarpetGatePuzzle(isCorrect);
+                  this.physics.resume();
+                  this.player.anims.resume();
+                  this.speedModifier = 1.0;
+                  this.audioManager?.fadeBGMUp();
+                  this.syncUI();
+                  return;
           }
       }
 
+      this.eventManager.reportPuzzleResolved(isCorrect);
       this.physics.resume();
       this.player.anims.resume();
       this.speedModifier = 1.0;

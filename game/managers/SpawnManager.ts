@@ -4,7 +4,7 @@ import { MainScene } from '../scenes/MainScene';
 import { Star } from '../objects/Star';
 import { Heart } from '../objects/Heart';
 import { ShieldItem } from '../objects/ShieldItem';
-import { Obstacle } from '../objects/Obstacle';
+import { Obstacle, type ObstacleType } from '../objects/Obstacle';
 import { MerchantCart } from '../objects/MerchantCart';
 import { StackOfRugs } from '../objects/StackOfRugs';
 import { MarketAwning } from '../objects/MarketAwning';
@@ -286,14 +286,14 @@ export class SpawnManager {
           } else {
               // CITY PATTERNS
               if (currentStage === 2) {
-                  // STAGE 2: Organized, Verticality, "Flow" + new mechanics
+                  // STAGE 2: Organized, Verticality, "Flow" + new mechanics. Dual-path is rare (one entry only).
                   patterns = [
-                      'MERCHANT_CART', 'STACK_OF_RUGS', 'ROOFTOP_START', // Trigger sequence
+                      'MERCHANT_CART', 'STACK_OF_RUGS', 'ROOFTOP_START',
                       'PLATFORM_SIMPLE_HOP', 'FREE_STARS', 'STREET_CAT',
                       'PLATFORM_MINI_STAIRS',
                       'MOVING_PLATFORM_VERTICAL', 'MOVING_PLATFORM_HORIZONTAL',
                       'RISING_PILLAR',
-                      'DUAL_PATH_EASY_HARD', 'DUAL_PATH_EASY_HARD' // slightly higher weight
+                      'DUAL_PATH_EASY_HARD' // Single entry = lower chance; guaranteed once is separate
                   ];
               } else {
                   // HARDER CITY
@@ -309,13 +309,17 @@ export class SpawnManager {
           }
       }
 
-      // GUARANTEED DUAL PATH: Once per Stage 2 city run, force the dual‑path pattern
-      // so the player definitely experiences it at least once.
-      if (zone === 'CITY' && currentStage === 2 && !this.forcedDualPathShown && !isShopHere) {
+      // GUARANTEED DUAL PATH: At most once per Stage 2 city run, and only after some distance
+      // so it doesn't appear too early. Use a random roll so it's not every run.
+      const runDist = this.scene.getRunDistance();
+      const cityStart = this.scene.getCityStartDistance();
+      const distInCity = cityStart >= 0 ? runDist - cityStart : 0;
+      const farEnoughForDualPath = distInCity >= 80; // ~80m into city before dual-path can trigger
+      const rollForGuaranteed = zone === 'CITY' && currentStage === 2 && !this.forcedDualPathShown && !isShopHere && farEnoughForDualPath && Phaser.Math.Between(1, 100) <= 35; // 35% chance to force it once
+      if (rollForGuaranteed) {
           const baseDelayForced = this.applySpawnLogic('DUAL_PATH_EASY_HARD', x, groundY);
           this.lastSpawnType = 'DUAL_PATH_EASY_HARD';
           this.forcedDualPathShown = true;
-          // Show a quick knowledge puzzle associated with the dual-path decision
           this.scene.showPuzzle({
               type: 'DUAL_PATH',
               prompt: 'أيُّ طريقٍ تعتقد أنه الأصعب… والأغنى بالنجوم؟ اختر الرمز الذي يمثّل التحدي الأكبر.',
@@ -356,6 +360,9 @@ export class SpawnManager {
 
   private applySpawnLogic(pattern: string, x: number, groundY: number): number {
       const platform = this.scene.environmentManager.platform;
+      const zone = this.scene.environmentManager.getZone();
+      const obs = (t: 'rock' | 'pillar' | 'spikes'): ObstacleType =>
+          zone === 'CITY' ? `${t}_city` : t;
       let baseDelay = 2000;
 
       switch(pattern) {
@@ -432,13 +439,13 @@ export class SpawnManager {
               this.addStar(bounceLandingX + 250, groundY - 350);
               
               this.obstacles.add(new Obstacle(this.scene, caveStartX + 600, groundY, 'snake'));
-              this.obstacles.add(new Obstacle(this.scene, caveStartX + 1200, groundY, 'spikes'));
+              this.obstacles.add(new Obstacle(this.scene, caveStartX + 1200, groundY, obs('spikes')));
               
               baseDelay = 8000; 
               break;
 
           case 'SHOP_DROP_BOUNCE':
-              this.obstacles.add(new Obstacle(this.scene, x + 50, groundY, 'spikes'));
+              this.obstacles.add(new Obstacle(this.scene, x + 50, groundY, obs('spikes')));
               const gapWidth = 700;
               platform.spawnShopGap(x + 200, gapWidth);
 
@@ -502,7 +509,7 @@ export class SpawnManager {
               this.addStar(platX - 60, platY - 50);
               this.addStar(platX + 60, platY - 50);
               
-              this.obstacles.add(new Obstacle(this.scene, x + 200, groundY, 'spikes'));
+              this.obstacles.add(new Obstacle(this.scene, x + 200, groundY, obs('spikes')));
               this.merchantCarts.add(new MerchantCart(this.scene, x + 500, groundY));
 
               baseDelay = 4500;
@@ -535,7 +542,7 @@ export class SpawnManager {
               break;
 
           case 'SINGLE_ROCK':
-              this.obstacles.add(new Obstacle(this.scene, x, groundY, 'rock'));
+              this.obstacles.add(new Obstacle(this.scene, x, groundY, obs('rock')));
               this.addStar(x, groundY - 150);
               baseDelay = 1500;
               break;
@@ -545,7 +552,7 @@ export class SpawnManager {
               baseDelay = 1500;
               break;
           case 'SPIKE_TRAP':
-               this.obstacles.add(new Obstacle(this.scene, x, groundY, 'spikes'));
+               this.obstacles.add(new Obstacle(this.scene, x, groundY, obs('spikes')));
                this.addStar(x, groundY - 180);
                baseDelay = 1800;
                break;
@@ -564,7 +571,7 @@ export class SpawnManager {
               baseDelay = 1800;
               break;
           case 'PLATFORM_SIMPLE_HOP':
-              this.obstacles.add(new Obstacle(this.scene, x + 80, groundY, 'spikes'));
+              this.obstacles.add(new Obstacle(this.scene, x + 80, groundY, obs('spikes')));
               platform.spawnFloatingPlatform(x, groundY - 90, 1.5);
               this.addStar(x, groundY - 150);
               baseDelay = 2500;
@@ -576,11 +583,11 @@ export class SpawnManager {
               baseDelay = 3000;
               break;
           case 'PLATFORM_BRIDGE':
-              platform.spawnFloatingPlatform(x, groundY - 120, 1.5);
-              platform.spawnFloatingPlatform(x + 240, groundY - 120, 1.5);
-              platform.spawnFloatingPlatform(x + 480, groundY - 120, 1.5);
+              platform.spawnFloatingPlatform(x, groundY - 120, 1.5, true);
+              platform.spawnFloatingPlatform(x + 240, groundY - 120, 1.5, true);
+              platform.spawnFloatingPlatform(x + 480, groundY - 120, 1.5, true);
               this.obstacles.add(new Obstacle(this.scene, x + 240, groundY, 'snake'));
-              this.obstacles.add(new Obstacle(this.scene, x + 400, groundY, 'spikes'));
+              this.obstacles.add(new Obstacle(this.scene, x + 400, groundY, obs('spikes')));
               this.addStar(x, groundY - 180);
               this.addStar(x + 240, groundY - 180);
               this.addStar(x + 480, groundY - 180);
@@ -602,7 +609,7 @@ export class SpawnManager {
           case 'RISING_PILLAR':
               // Rising pillar from ground – appears mostly in city
               const startY = groundY + 80;
-              const pillar = new Obstacle(this.scene, x, startY, 'pillar');
+              const pillar = new Obstacle(this.scene, x, startY, obs('pillar'));
               this.obstacles.add(pillar);
               this.scene.tweens.add({
                   targets: pillar,
@@ -613,22 +620,36 @@ export class SpawnManager {
               this.addStar(x, groundY - 180);
               baseDelay = 2600;
               break;
-          case 'DUAL_PATH_EASY_HARD':
-              // Dual path choice:
-              // Lower path: simple ground obstacle + few stars (easier).
-              this.obstacles.add(new Obstacle(this.scene, x + 120, groundY, 'spikes'));
-              this.addStar(x + 120, groundY - 150);
+        case 'DUAL_PATH_EASY_HARD':
+            // Dual‑path choice for Stage 2 city:
+            // 1) Main ground path continues toward بيت الحكمة.
+            // 2) Upper path (lower bridge height so it's reachable) leads to Magic Carpet side ride.
 
-              // Upper path: moving platforms with more reward (harder).
-              const upperY = groundY - 180;
-              platform.spawnMovingPlatform(x, upperY, 1.2, 'vertical', 40, 1800);
-              platform.spawnMovingPlatform(x + 260, upperY - 40, 1.4, 'horizontal', 60, 2000);
-              this.addStar(x, upperY - 60);
-              this.addStar(x + 260, upperY - 80);
-              this.shieldsGroup.add(new ShieldItem(this.scene, x + 260, upperY - 100));
+            // --- Ground path (toward Bayt Al‑Hikma) ---
+            this.obstacles.add(new Obstacle(this.scene, x + 140, groundY, obs('spikes')));
+            this.obstacles.add(new Obstacle(this.scene, x + 420, groundY, obs('rock')));
+            this.addStar(x + 140, groundY - 150);
+            this.addStar(x + 420, groundY - 170);
 
-              baseDelay = 4200;
-              break;
+            // --- Upper path: lowered so one jump from ground can reach the first platform ---
+            const pathY = groundY - 100;   // First platform: low enough to reach with normal jump
+            const secondPlatY = groundY - 125; // Second platform: small step up
+            const carpetY = groundY - 142;    // Carpet just above second platform
+
+            platform.spawnFloatingPlatform(x + 40, pathY, 1.4, true);
+            this.addStar(x + 40, pathY - 55);
+
+            const secondPlatX = x + 320;
+            platform.spawnFloatingPlatform(secondPlatX, secondPlatY, 1.4, true);
+            this.addStar(secondPlatX, secondPlatY - 55);
+            this.shieldsGroup.add(new ShieldItem(this.scene, secondPlatX + 40, secondPlatY - 50));
+
+            const carpetX = x + 620;
+            this.scene.eventManager.spawnDualPathMagicCarpet(carpetX, carpetY);
+            this.addStar(carpetX, carpetY - 50);
+
+            baseDelay = 5200;
+            break;
       }
       return baseDelay;
   }

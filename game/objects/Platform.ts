@@ -154,14 +154,18 @@ export class Platform {
 
   // --- SPAWN PATTERNS ---
 
-  public spawnFloatingPlatform(x: number, y: number, widthScale: number = 1) {
-      const plat = this.scene.physics.add.sprite(x, y, this.currentFloatingKey);
+  /** useBridge: when true and in city, use Andalusian bridge texture (arch + decoration). */
+  public spawnFloatingPlatform(x: number, y: number, widthScale: number = 1, useBridge: boolean = false) {
+      const key = useBridge && this.currentFloatingKey === 'floating_plat_city'
+          ? 'floating_plat_city_bridge'
+          : this.currentFloatingKey;
+      const plat = this.scene.physics.add.sprite(x, y, key);
       plat.setImmovable(true);
       (plat.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
       plat.setScale(widthScale, 1);
-      plat.body.setSize(plat.width, 20); 
+      plat.body.setSize(plat.width, 20);
       plat.body.setOffset(0, 0);
-      plat.setDepth(10); 
+      plat.setDepth(10);
       plat.body.checkCollision.down = false;
       plat.body.checkCollision.left = false;
       plat.body.checkCollision.right = false;

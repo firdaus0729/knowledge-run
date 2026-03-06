@@ -1,7 +1,8 @@
 
 import Phaser from 'phaser';
 
-export type ObstacleType = 'spikes' | 'rock' | 'pillar' | 'orb' | 'snake' | 'wall' | 'falcon' | 'cactus' | 'archway' | 'scorpion' | 'viper' | 'arfaj' | 'book_pile';
+export type ObstacleType = 'spikes' | 'rock' | 'pillar' | 'orb' | 'snake' | 'wall' | 'falcon' | 'cactus' | 'archway' | 'scorpion' | 'viper' | 'arfaj' | 'book_pile'
+  | 'pillar_city' | 'rock_city' | 'spikes_city';
 
 export class Obstacle extends Phaser.Physics.Arcade.Sprite {
   declare body: Phaser.Physics.Arcade.Body;
@@ -38,21 +39,24 @@ export class Obstacle extends Phaser.Physics.Arcade.Sprite {
 
     switch (this.obstacleType) {
       case 'spikes':
+      case 'spikes_city':
         this.setOrigin(0.5, 1);
         body.setSize(48, 24);
         body.setOffset(8, 40);
         break;
 
-      case 'rock':
-        this.setOrigin(0.5, 1);
-        body.setSize(40, 40);
-        body.setOffset(12, 24);
-        break;
-
       case 'pillar':
+      case 'pillar_city':
         this.setOrigin(0.5, 1);
         body.setSize(30, 80);
         body.setOffset(17, 16);
+        break;
+
+      case 'rock':
+      case 'rock_city':
+        this.setOrigin(0.5, 1);
+        body.setSize(40, 40);
+        body.setOffset(12, 24);
         break;
 
       case 'orb':
@@ -180,6 +184,9 @@ export class Obstacle extends Phaser.Physics.Arcade.Sprite {
     this.generateSpikes(scene);
     this.generateRock(scene);
     this.generatePillar(scene);
+    this.generatePillarCity(scene);
+    this.generateRockCity(scene);
+    this.generateSpikesCity(scene);
     this.generateOrb(scene);
     this.generateSnake(scene); 
     this.generateWall(scene);
@@ -236,6 +243,86 @@ export class Obstacle extends Phaser.Physics.Arcade.Sprite {
     ctx.fillStyle = '#37474f'; ctx.fillRect(14, 0, 36, 12); ctx.fillRect(12, H-12, 40, 12);
     ctx.fillStyle = '#cfd8dc'; ctx.beginPath(); ctx.moveTo(32, 25); ctx.lineTo(40, 40); ctx.lineTo(32, 55); ctx.lineTo(24, 40); ctx.fill();
     ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(20, 15, 2, H-30); ctx.fillRect(42, 15, 2, H-30);
+    canvas.refresh();
+  }
+
+  /** City: decorated column (Andalusian style). */
+  private static generatePillarCity(scene: Phaser.Scene) {
+    if (scene.textures.exists('obs_pillar_city')) return;
+    const W = 64, H = 96;
+    const canvas = scene.textures.createCanvas('obs_pillar_city', W, H);
+    if (!canvas) return;
+    const ctx = canvas.context;
+    const cx = W / 2;
+    const baseGrd = ctx.createLinearGradient(cx - 22, H, cx + 22, H - 16);
+    baseGrd.addColorStop(0, '#5d4037'); baseGrd.addColorStop(1, '#8d6e63');
+    ctx.fillStyle = baseGrd;
+    ctx.beginPath();
+    ctx.moveTo(cx - 20, H); ctx.lineTo(cx + 20, H); ctx.lineTo(cx + 18, H - 14); ctx.lineTo(cx - 18, H - 14); ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#4e342e'; ctx.lineWidth = 2; ctx.stroke();
+    const shaftGrd = ctx.createLinearGradient(cx - 16, 0, cx + 16, 0);
+    shaftGrd.addColorStop(0, '#6d4c41'); shaftGrd.addColorStop(0.5, '#bcaaa4'); shaftGrd.addColorStop(1, '#5d4037');
+    ctx.fillStyle = shaftGrd;
+    ctx.fillRect(cx - 14, 14, 28, H - 42);
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    for (let y = 20; y < H - 50; y += 12) {
+      ctx.fillRect(cx - 12, y, 3, 8);
+      ctx.fillRect(cx + 9, y, 3, 8);
+    }
+    ctx.fillStyle = '#ffc107';
+    ctx.fillRect(cx - 18, 0, 36, 14);
+    ctx.fillStyle = '#4a148c';
+    ctx.beginPath();
+    ctx.moveTo(cx, 5); ctx.lineTo(cx + 5, 10); ctx.lineTo(cx, 14); ctx.lineTo(cx - 5, 10); ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#ffc107'; ctx.lineWidth = 1.5; ctx.strokeRect(cx - 17, 1, 34, 12);
+    canvas.refresh();
+  }
+
+  /** City: stone barrier. */
+  private static generateRockCity(scene: Phaser.Scene) {
+    if (scene.textures.exists('obs_rock_city')) return;
+    const W = 64, H = 64;
+    const canvas = scene.textures.createCanvas('obs_rock_city', W, H);
+    if (!canvas) return;
+    const ctx = canvas.context;
+    const grd = ctx.createLinearGradient(0, 0, 0, H);
+    grd.addColorStop(0, '#a1887f'); grd.addColorStop(0.5, '#8d6e63'); grd.addColorStop(1, '#5d4037');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.roundRect(8, 12, 48, 52, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#4e342e'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.fillRect(12, 18, 18, 14); ctx.fillRect(34, 18, 18, 14);
+    ctx.fillRect(12, 36, 18, 14); ctx.fillRect(34, 36, 18, 14);
+    ctx.fillStyle = '#ffc107';
+    ctx.fillRect(8, 10, 48, 3);
+    canvas.refresh();
+  }
+
+  /** City: decorative barrier spikes. */
+  private static generateSpikesCity(scene: Phaser.Scene) {
+    if (scene.textures.exists('obs_spikes_city')) return;
+    const W = 64, H = 64;
+    const canvas = scene.textures.createCanvas('obs_spikes_city', W, H);
+    if (!canvas) return;
+    const ctx = canvas.context;
+    const baseGrd = ctx.createLinearGradient(0, H, 0, 24);
+    baseGrd.addColorStop(0, '#5d4037'); baseGrd.addColorStop(1, '#8d6e63');
+    ctx.fillStyle = baseGrd;
+    ctx.fillRect(4, 24, W - 8, 40);
+    ctx.strokeStyle = '#4e342e'; ctx.lineWidth = 2; ctx.strokeRect(4, 24, W - 8, 40);
+    const spikeGrd = ctx.createLinearGradient(0, 24, 0, 0);
+    spikeGrd.addColorStop(0, '#455a64'); spikeGrd.addColorStop(0.6, '#78909c'); spikeGrd.addColorStop(1, '#90a4ae');
+    ctx.fillStyle = spikeGrd;
+    const drawSpike = (ox: number) => {
+      ctx.beginPath();
+      ctx.moveTo(ox - 8, 64); ctx.lineTo(ox, 18); ctx.lineTo(ox + 8, 64); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ox - 8, 64); ctx.lineTo(ox, 18); ctx.stroke();
+    };
+    drawSpike(16); drawSpike(32); drawSpike(48);
     canvas.refresh();
   }
 

@@ -63,13 +63,17 @@ export class CollisionManager {
   }
   
   public checkDynamicOverlaps() {
-      // Called from MainScene update
       const player = this.scene.player;
-      const carpet = this.scene.eventManager.currentCarpet;
-      
+      const evt = this.scene.eventManager;
+      const carpet = evt.currentCarpet;
+
       if (carpet && carpet.active && !player.isFlying) {
           this.scene.physics.overlap(player, carpet, () => {
-              this.scene.eventManager.triggerCarpetRide();
+              if (evt.getCarpetGateRequired()) {
+                  evt.onCarpetOverlap();
+              } else {
+                  evt.triggerCarpetRide();
+              }
           });
       }
   }
