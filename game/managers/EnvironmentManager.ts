@@ -67,12 +67,25 @@ export class EnvironmentManager {
               this.citySegment = 'CITY_BAYT';
           }
 
-          // 2) Library trigger (Bayt Al‑Hikma entry) – still part of Stage 2
+          // 2) Library trigger (Bayt Al‑Hikma entry) – only mark done when discovery actually runs
           if (!this.hasTriggeredLibrary && distInCity >= this.LIBRARY_TRIGGER_DISTANCE) {
-              this.hasTriggeredLibrary = true;
-              this.scene.eventManager.triggerLibraryDiscovery();
+              if (this.scene.eventManager.triggerLibraryDiscovery()) {
+                  this.hasTriggeredLibrary = true;
+              }
           }
       }
+  }
+
+  /** Call when magic carpet ride ends: if we already passed the library entrance, trigger it immediately so the event unfolds. */
+  public triggerLibraryIfPastEntrance(): boolean {
+      if (this.currentZone !== 'CITY') return false;
+      const distInCity = this.scene.getRunDistance() - this.cityStartDistance;
+      if (this.hasTriggeredLibrary || distInCity < this.LIBRARY_TRIGGER_DISTANCE) return false;
+      if (this.scene.eventManager.triggerLibraryDiscovery()) {
+          this.hasTriggeredLibrary = true;
+          return true;
+      }
+      return false;
   }
 
   public transitionToCity() {

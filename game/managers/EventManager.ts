@@ -384,9 +384,9 @@ export class EventManager {
           onComplete: () => {
               this.scene.player.stopFlying(); // Land
               this.scene.setGameSpeed(1.0);
-                   // Ensure we are fully in City mode logic after library ride.
-                   // For city side‑path usage, this is a no‑op if we were already in the city.
-                   this.scene.environmentManager.finalizeCityTransition();
+              this.scene.environmentManager.finalizeCityTransition();
+              // If the carpet rolled past the library entrance, trigger the entrance now so the event unfolds.
+              this.scene.environmentManager.triggerLibraryIfPastEntrance();
           }
       });
   }
@@ -557,14 +557,16 @@ export class EventManager {
       });
   }
 
-  public triggerLibraryDiscovery() {
-      if (this.eventPhase !== 'NONE') return;
+  /** Returns true if the library entrance was actually started (so caller can mark trigger done). */
+  public triggerLibraryDiscovery(): boolean {
+      if (this.eventPhase !== 'NONE') return false;
       this.eventPhase = 'LIBRARY_APPROACH';
       const { width, height } = this.scene.scale;
-      const groundY = height - 120; 
+      const groundY = height - 120;
       this.libraryBuilding = new LibraryBuilding(this.scene, width + 400, groundY);
       this.scene.add.existing(this.libraryBuilding);
       this.scene.showNoorMessage("انظر! بيت الحكمة! 🏛️", false, 'greet');
+      return true;
   }
 
   private triggerLibraryArrival() {
