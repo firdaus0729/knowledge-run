@@ -2,6 +2,16 @@
 export const GAME_WIDTH = window.innerWidth > 0 ? window.innerWidth : 800;
 export const GAME_HEIGHT = window.innerHeight > 0 ? window.innerHeight : 600;
 
+/** Player spawn/reset X – accurate on both PC and mobile. */
+export function getPlayerStartX(viewWidth: number): number {
+  const MOBILE_BREAKPOINT = 600;
+  const DESKTOP_X = 180;
+  if (viewWidth >= MOBILE_BREAKPOINT) return DESKTOP_X;
+  const pct = 0.15;
+  const min = 110;
+  return Math.max(min, Math.round(viewWidth * pct));
+}
+
 // Physics Tuning - "Variable Height"
 export const PHYSICS = {
   GRAVITY: 2000,        // Heavy gravity for a snappy 0.7s jump

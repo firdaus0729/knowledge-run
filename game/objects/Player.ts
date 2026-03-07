@@ -1,6 +1,6 @@
 
 import Phaser from 'phaser';
-import { PHYSICS } from '../../constants';
+import { PHYSICS, getPlayerStartX } from '../../constants';
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   // ... (Keep existing declarations) ...
@@ -409,15 +409,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const onGround = body.blocked.down || body.touching.down;
     const isTweening = this.scene.tweens.isTweening(this);
     
+    const startX = getPlayerStartX(this.scene.scale.width);
     if (this.isStruggling && onGround && !isTweening) {
         const wobble = Math.sin(time * 0.015); 
         const jitter = (Math.random() - 0.5) * 0.05; 
         this.setRotation(0.05 + (wobble * 0.05) + jitter);
         const stepPush = Math.sin(time * 0.02) * 2; 
-        this.x = 100 + stepPush; 
+        this.x = startX + stepPush; 
     } else {
-        if (Math.abs(this.x - 100) > 1 && !this.isJumping && !isTweening) {
-            this.x = Phaser.Math.Linear(this.x, 100, 0.1);
+        if (Math.abs(this.x - startX) > 1 && !this.isJumping && !isTweening) {
+            this.x = Phaser.Math.Linear(this.x, startX, 0.1);
         }
     }
 

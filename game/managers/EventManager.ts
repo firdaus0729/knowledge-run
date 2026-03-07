@@ -1,6 +1,6 @@
 
 import Phaser from 'phaser';
-import { PROGRESS } from '../../constants';
+import { PROGRESS, getPlayerStartX } from '../../constants';
 import { MainScene } from '../scenes/MainScene';
 import { MagicGate } from '../objects/MagicGate';
 import { MagicChest } from '../objects/MagicChest';
@@ -573,7 +573,7 @@ export class EventManager {
       player.setScale(1);
       player.setAlpha(1);
       player.setDepth(20);
-      player.setPosition(100, this.scene.scale.height - 200);
+      player.setPosition(getPlayerStartX(this.scene.scale.width), this.scene.scale.height - 200);
       this.scene.time.delayedCall(2000, () => {
           this.beginStage2Intro();
       });
@@ -666,7 +666,7 @@ export class EventManager {
               this.scene.cameras.main.fadeIn(1000);
               this.scene.player.alpha = 1;
               this.scene.player.setScale(1);
-              this.scene.player.x = 100;
+              this.scene.player.x = getPlayerStartX(this.scene.scale.width);
               this.scene.player.play('run');
               this.scene.cameras.main.once('camerafadeincomplete', () => {
                   this.scene.player.isScripted = false;
@@ -827,7 +827,7 @@ export class EventManager {
       this.scene.setGameSpeed(1.0);
       if (this.scene.physics.world.isPaused) this.scene.physics.resume();
       this.scene.player.anims.resume();
-      this.scene.tweens.add({ targets: this.scene.player, x: 100, duration: 2000, ease: 'Power2.inOut' });
+      this.scene.tweens.add({ targets: this.scene.player, x: getPlayerStartX(this.scene.scale.width), duration: 2000, ease: 'Power2.inOut' });
       this.eventPhase = 'NONE';
       this.encounterType = 'NONE';
       this.isEncounterActive = false;

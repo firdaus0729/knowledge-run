@@ -1,6 +1,6 @@
 
 import Phaser from 'phaser';
-import { PHYSICS, PROGRESS } from '../../constants';
+import { PHYSICS, PROGRESS, getPlayerStartX } from '../../constants';
 import { Player } from '../objects/Player';
 import { Obstacle } from '../objects/Obstacle';
 import { Question, GameState, NoorMessage, StageResultsData, ActivePuzzle, PuzzleType } from '../../types';
@@ -162,7 +162,7 @@ export class MainScene extends Phaser.Scene {
 
     // 3. Create Player
     const height = Math.max(10, Math.ceil(this.scale.height));
-    this.player = new Player(this, 100, height - 200);
+    this.player = new Player(this, getPlayerStartX(this.scale.width), height - 200);
     this.player.setVariableJump(false);
 
     // 4. VFX Overlays
