@@ -6,10 +6,14 @@ export const GAME_HEIGHT = window.innerHeight > 0 ? window.innerHeight : 600;
 export const PHYSICS = {
   GRAVITY: 2000,        // Heavy gravity for a snappy 0.7s jump
   JUMP_FORCE: -800,    // Force calculated to give ~0.7s hang time with the new gravity
-  RUN_SPEED: 350,       // Base speed
+  RUN_SPEED: 350,       // Normal/max run speed
+  RUN_SPEED_START: 290, // Slower start so player can read the environment
   COYOTE_TIME: 100,     // ms
   BUFFER_TIME: 150,     // ms
 };
+
+/** Distance in meters with no obstacles at run start (tutorial: Nur explains jump first). */
+export const INTRO_SAFE_DISTANCE_M = 22;
 
 export const UI_STRINGS = {
   TITLE: "Knowledge Run",

@@ -51,7 +51,7 @@ export class MainScene extends Phaser.Scene {
   private cinematicVignette!: Phaser.GameObjects.Image;
 
   // Game State
-  public baseSpeed: number = PHYSICS.RUN_SPEED; 
+  public baseSpeed: number = PHYSICS.RUN_SPEED_START ?? PHYSICS.RUN_SPEED; 
   private speedModifier: number = 1.0;
   private speedModifierTimer: number = 0;
   
@@ -154,7 +154,8 @@ export class MainScene extends Phaser.Scene {
     MerchantCart.generateTexture(this);
     StackOfRugs.generateTexture(this);
     StreetCat.generateTexture(this); // Gen Cat
-    MagicCarpet.init(this); 
+    MagicCarpet.init(this);
+    this.generateCarpetGateTexture();
 
     this.environmentManager.create();
     this.spawnManager.create();
@@ -171,6 +172,9 @@ export class MainScene extends Phaser.Scene {
 
     // 5. Setup Collisions
     this.collisionManager.setupCollisions();
+
+    // 5b. Slight camera zoom so road and obstacles feel larger (~15%)
+    this.cameras.main.setZoom(1.15);
 
     // 6. Audio (Step 5 – preferences from localStorage)
     const soundOn = typeof localStorage !== 'undefined' && localStorage.getItem('soundEnabled') !== '0';
@@ -208,6 +212,40 @@ export class MainScene extends Phaser.Scene {
   public getSoundEnabled(): boolean { return this.audioManager?.soundEnabled ?? true; }
   public getMusicEnabled(): boolean { return this.audioManager?.musicEnabled ?? true; }
 
+  /** Generate texture for the magic carpet path gate (gold barrier – clearly visible). */
+  public generateCarpetGateTexture() {
+    if (this.textures.exists('carpet_gate')) return;
+    const W = 100;
+    const H = 130;
+    const canvas = this.textures.createCanvas('carpet_gate', W, H);
+    if (!canvas) return;
+    const ctx = canvas.context;
+    // Dark base so gate stands out
+    ctx.fillStyle = '#5c4a1a';
+    ctx.fillRect(0, 0, W, H);
+    // Thick gold frame
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, W - 6, H - 6);
+    ctx.strokeStyle = '#D4AF37';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(8, 8, W - 16, H - 16);
+    // Vertical bars (gate)
+    ctx.fillStyle = '#ffd700';
+    for (let i = 0; i < 5; i++) {
+      const x = 14 + i * 18;
+      ctx.fillRect(x, 20, 10, H - 40);
+    }
+    // Top lintel “entrance” band
+    ctx.fillStyle = 'rgba(255, 215, 0, 0.6)';
+    ctx.fillRect(0, 0, W, 22);
+    ctx.fillStyle = '#8B6914';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🧩', W / 2, 16);
+    canvas.refresh();
+  }
+
   /** Nur appears at center with city-intro style line before the run begins */
   private startNurIntro() {
     const mainMessage =
@@ -221,9 +259,14 @@ export class MainScene extends Phaser.Scene {
       this.nurController.hide();
       this.eventManager.eventPhase = 'INTRO_RUN';
       this.stageStartTime = this.time.now;
+      this.baseSpeed = PHYSICS.RUN_SPEED_START ?? PHYSICS.RUN_SPEED;
       this.physics.resume();
       this.player.play('run');
       this.playMusic('desert');
+      // Jump tutorial: Nur explains jump before first obstacle appears
+      this.time.delayedCall(1200, () => {
+        this.showNoorMessage('اضغط للقفز وتجاوز العقبات! 🏃', true, 'greet');
+      });
       // Step 2: stage title temporary intro only (2–3 s then fade out)
       this.stageTitle = 'المرحلة 1 – طريق الصحراء';
       this.syncUI();
@@ -296,7 +339,7 @@ export class MainScene extends Phaser.Scene {
     this.hearts = 3;
     this.runDistance = 0;
     this.collectedStarsCount = 0;
-    this.baseSpeed = PHYSICS.RUN_SPEED;
+    this.baseSpeed = PHYSICS.RUN_SPEED_START ?? PHYSICS.RUN_SPEED;
     this.speedModifier = 1.0; 
     this.physics.world.timeScale = 1.0; 
     this.questionPool = getQuestions();
@@ -524,9 +567,16 @@ export class MainScene extends Phaser.Scene {
                   this.tweens.add({ targets: this, speedModifier: 1.0, duration: 1000 });
               }
           }
-          const maxSpeed = PHYSICS.RUN_SPEED + (this.currentStage * 25); 
-          if (this.baseSpeed < maxSpeed) {
-              this.baseSpeed += dt * 1.5; 
+          const maxSpeed = PHYSICS.RUN_SPEED + (this.currentStage * 25);
+          // Gradual speed increase with distance (first ~80m ramp from start to normal)
+          const rampDistance = 80;
+          const startSpeed = PHYSICS.RUN_SPEED_START ?? PHYSICS.RUN_SPEED;
+          if (this.runDistance < rampDistance && this.baseSpeed < maxSpeed) {
+              const t = Math.min(1, this.runDistance / rampDistance);
+              const target = startSpeed + t * (PHYSICS.RUN_SPEED - startSpeed);
+              if (this.baseSpeed < target) this.baseSpeed = Math.min(this.baseSpeed + dt * 8, target);
+          } else if (this.baseSpeed < maxSpeed) {
+              this.baseSpeed += dt * 1.5;
           }
       }
   }
@@ -545,6 +595,7 @@ export class MainScene extends Phaser.Scene {
       const width = gameSize.width;
       const height = gameSize.height;
       this.cameras.main.setViewport(0, 0, width, height);
+      this.cameras.main.setZoom(1.15);
       this.environmentManager.resize(width, height);
       if (this.sandstormOverlay) {
           this.sandstormOverlay.setPosition(width/2, height/2);

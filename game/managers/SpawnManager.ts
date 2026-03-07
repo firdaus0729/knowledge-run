@@ -10,7 +10,7 @@ import { StackOfRugs } from '../objects/StackOfRugs';
 import { MarketAwning } from '../objects/MarketAwning';
 import { CityBuilding } from '../objects/CityBuilding';
 import { StreetCat } from '../objects/StreetCat'; // Import Cat
-import { PHYSICS } from '../../constants';
+import { PHYSICS, INTRO_SAFE_DISTANCE_M } from '../../constants';
 
 export class SpawnManager {
   private scene: MainScene;
@@ -150,10 +150,17 @@ export class SpawnManager {
           return;
       }
 
+      // --- 2b. JUMP TUTORIAL: no obstacles until player has run a short distance (Nur already explained jump)
+      const runDistance = this.scene.getRunDistance();
+      if (this.scene.eventManager.eventPhase === 'INTRO_RUN' && runDistance < INTRO_SAFE_DISTANCE_M) {
+          this.nextSpawnTime = 400;
+          return;
+      }
+
       const zone = this.scene.environmentManager.getZone();
       const isDesertStart = (this.scene.eventManager.eventPhase === 'INTRO_RUN' || zone === 'DESERT' || zone === 'TRANSITION') && this.spawnCount < 2;
 
-      // --- 3. DESERT FROM START: use random patterns immediately (obstacles + stars + variety), no empty intro
+      // --- 3. DESERT FROM START: first obstacle after safe distance, then variety
       if (isDesertStart) {
           this.spawnRandomObstacle(x, groundY, currentSpeed);
           if (this.spawnCount === 0) this.scene.firstObstacleRef = this.obstacles.getLast(true);
@@ -290,10 +297,10 @@ export class SpawnManager {
                   patterns = [
                       'MERCHANT_CART', 'STACK_OF_RUGS', 'ROOFTOP_START',
                       'PLATFORM_SIMPLE_HOP', 'FREE_STARS', 'STREET_CAT',
-                      'PLATFORM_MINI_STAIRS',
+                      'PLATFORM_MINI_STAIRS', 'ELEVATED_BRIDGE_REWARD',
                       'MOVING_PLATFORM_VERTICAL', 'MOVING_PLATFORM_HORIZONTAL',
                       'RISING_PILLAR',
-                      'DUAL_PATH_EASY_HARD' // Single entry = lower chance; guaranteed once is separate
+                      'DUAL_PATH_EASY_HARD'
                   ];
               } else {
                   // HARDER CITY
@@ -320,13 +327,6 @@ export class SpawnManager {
           const baseDelayForced = this.applySpawnLogic('DUAL_PATH_EASY_HARD', x, groundY);
           this.lastSpawnType = 'DUAL_PATH_EASY_HARD';
           this.forcedDualPathShown = true;
-          this.scene.showPuzzle({
-              type: 'DUAL_PATH',
-              prompt: 'أيُّ طريقٍ تعتقد أنه الأصعب… والأغنى بالنجوم؟ اختر الرمز الذي يمثّل التحدي الأكبر.',
-              options: ['🌙', '⭐', '🔥'],
-              correctIndex: 2,
-              timeoutMs: 6000
-          });
           const difficultyForced = Math.max(0.6, 1.0 - ((currentStage - 1) * 0.15));
           this.nextSpawnTime = (baseDelayForced * difficultyForced) + Phaser.Math.Between(-200, 300);
           return;
@@ -607,7 +607,6 @@ export class SpawnManager {
               baseDelay = 2800;
               break;
           case 'RISING_PILLAR':
-              // Rising pillar from ground – appears mostly in city
               const startY = groundY + 80;
               const pillar = new Obstacle(this.scene, x, startY, obs('pillar'));
               this.obstacles.add(pillar);
@@ -619,6 +618,24 @@ export class SpawnManager {
               });
               this.addStar(x, groundY - 180);
               baseDelay = 2600;
+              break;
+          case 'ELEVATED_BRIDGE_REWARD':
+              // Step up → short elevated bridge (stars + reward) → step down to main road
+              const step1Y = groundY - 85;
+              const step2Y = groundY - 155;
+              const bridgeY = groundY - 200;
+              platform.spawnFloatingPlatform(x + 50, step1Y, 1.2, true);
+              this.addStar(x + 50, step1Y - 50);
+              platform.spawnFloatingPlatform(x + 280, step2Y, 1.2, true);
+              this.addStar(x + 280, step2Y - 50);
+              platform.spawnFloatingPlatform(x + 500, bridgeY, 1.4, true);
+              platform.spawnFloatingPlatform(x + 700, bridgeY, 1.4, true);
+              for (let i = 0; i < 4; i++) this.addStar(x + 520 + i * 55, bridgeY - 55);
+              this.shieldsGroup.add(new ShieldItem(this.scene, x + 600, bridgeY - 60));
+              platform.spawnFloatingPlatform(x + 920, step2Y, 1.2, true);
+              platform.spawnFloatingPlatform(x + 1150, step1Y, 1.2, true);
+              platform.spawnFloatingPlatform(x + 1380, groundY - 40, 1.0, true);
+              baseDelay = 5500;
               break;
         case 'DUAL_PATH_EASY_HARD':
             // Dual‑path choice for Stage 2 city:
@@ -645,7 +662,7 @@ export class SpawnManager {
             this.shieldsGroup.add(new ShieldItem(this.scene, secondPlatX + 40, secondPlatY - 50));
 
             const carpetX = x + 620;
-            this.scene.eventManager.spawnDualPathMagicCarpet(carpetX, carpetY);
+            this.scene.eventManager.spawnDualPathCarpetGate(carpetX, carpetY);
             this.addStar(carpetX, carpetY - 50);
 
             baseDelay = 5200;

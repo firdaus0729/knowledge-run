@@ -237,10 +237,10 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
           </div>
           <div className="flex justify-between items-start w-full">
             {/* Stars – top left */}
-            <div className="bg-black/40 backdrop-blur-md px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-white/10 shadow-lg">
+            <div className="bg-black/40 backdrop-blur-md px-3.5 py-2.5 md:px-5 md:py-3 rounded-xl border border-white/10 shadow-lg">
               <div className="flex flex-col items-center leading-tight text-yellow-400">
-                <span className="text-yellow-400/60 text-[8px] md:text-[10px] uppercase tracking-widest font-bold">النجوم</span>
-                <span className="text-lg md:text-xl font-black">{gameState.stars}</span>
+                <span className="text-yellow-400/60 text-[10px] md:text-xs uppercase tracking-widest font-bold">النجوم</span>
+                <span className="text-xl md:text-2xl font-black">{gameState.stars}</span>
               </div>
             </div>
             {/* Distance + Hearts + Audio toggles – top right */}
@@ -270,19 +270,19 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
                   </button>
                 )}
               </div>
-              <div className="bg-black/40 backdrop-blur-md px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-white/10 shadow-lg">
+              <div className="bg-black/40 backdrop-blur-md px-3.5 py-2.5 md:px-5 md:py-3 rounded-xl border border-white/10 shadow-lg">
                 <div className="flex flex-col items-center leading-tight">
-                  <span className="text-white/60 text-[8px] md:text-[10px] uppercase tracking-widest font-bold">المسافة</span>
-                  <span className="text-white text-lg md:text-xl font-black font-mono tracking-tighter">
-                    {Math.floor(displayDistance)}<span className="text-xs text-white/50 mr-0.5">م</span>
+                  <span className="text-white/60 text-[10px] md:text-xs uppercase tracking-widest font-bold">المسافة</span>
+                  <span className="text-white text-xl md:text-2xl font-black font-mono tracking-tighter">
+                    {Math.floor(displayDistance)}<span className="text-sm text-white/50 mr-0.5">م</span>
                   </span>
                 </div>
               </div>
-              <div className="flex gap-1 md:gap-1.5 flex-row-reverse">
+              <div className="flex gap-1.5 md:gap-2 flex-row-reverse">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div
                     key={i}
-                    className={`w-5 h-5 md:w-6 md:h-6 transform transition-all duration-300 ${
+                    className={`w-6 h-6 md:w-7 md:h-7 transform transition-all duration-300 ${
                       i < gameState.hearts ? 'scale-110' : 'scale-90 opacity-30 grayscale'
                     }`}
                   >

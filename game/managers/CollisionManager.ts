@@ -65,8 +65,11 @@ export class CollisionManager {
   public checkDynamicOverlaps() {
       const player = this.scene.player;
       const evt = this.scene.eventManager;
+      const gate = evt.getCurrentCarpetGate();
+      if (gate && !player.isFlying) {
+          this.scene.physics.overlap(player, gate, () => evt.onCarpetGateOverlap());
+      }
       const carpet = evt.currentCarpet;
-
       if (carpet && carpet.active && !player.isFlying) {
           this.scene.physics.overlap(player, carpet, () => {
               if (evt.getCarpetGateRequired()) {

@@ -36,7 +36,9 @@ export class EventManager {
   
   public currentGate: MagicGate | null = null;
   public currentChest: MagicChest | null = null;
-  public currentCarpet: MagicCarpet | null = null; 
+  public currentCarpet: MagicCarpet | null = null;
+  /** Gate blocking the magic carpet path until puzzle is solved. */
+  public currentCarpetGate: Phaser.GameObjects.Sprite | null = null;
   public libraryBuilding: LibraryBuilding | null = null;
   
   // Intro Specific
@@ -101,6 +103,22 @@ export class EventManager {
           else this.currentChest = null;
       }
       
+      // Update carpet gate (scroll with world)
+      if (this.currentCarpetGate) {
+          if (this.currentCarpetGate.active) {
+              this.currentCarpetGate.x -= frameMove;
+              // Static bodies do not sync with the game object – must update so overlap detects correctly
+              const gateBody = this.currentCarpetGate.body as Phaser.Physics.Arcade.StaticBody;
+              if (gateBody?.updateFromGameObject) gateBody.updateFromGameObject();
+              if (this.currentCarpetGate.x < -80) {
+                  this.currentCarpetGate.destroy();
+                  this.currentCarpetGate = null;
+              }
+          } else {
+              this.currentCarpetGate = null;
+          }
+      }
+
       // Update Carpet & Check for Miss
       if (this.currentCarpet) {
           if (this.currentCarpet.active) {
@@ -287,23 +305,47 @@ export class EventManager {
       this.scene.showNoorMessage("انظر! بساط الريح السحري! اقفز عليه! 🧞‍♂️", false, 'greet');
   }
 
-  /** Spawn a Magic Carpet reachable via the city dual‑path choice (short side path, not a new stage). */
+  /** Spawn the gate that blocks the magic carpet path; carpet spawns only after puzzle is solved. */
+  public spawnDualPathCarpetGate(spawnX: number, platformY: number) {
+      if (this.currentCarpetGate) return;
+      if (!this.scene.textures.exists('carpet_gate')) return;
+      // Place gate on the platform (platformY = carpet/platform height)
+      const gate = this.scene.add.sprite(spawnX, platformY - 55, 'carpet_gate');
+      gate.setDepth(22); // In front of platforms and obstacles
+      gate.setScale(1.2); // Slightly larger so the entrance is easy to see
+      this.scene.physics.add.existing(gate, true);
+      const body = (gate.body as Phaser.Physics.Arcade.Body);
+      // Large hitbox so overlap triggers reliably (texture 100x130, scaled 1.2)
+      body.setSize(100, 130);
+      body.setOffset(0, 0); // Full sprite area for overlap
+      this.currentCarpetGate = gate;
+      this.encounterType = 'CARPET';
+      this.carpetMode = 'CITY_SIDE';
+      this.carpetGatePending = false;
+      // Message shown when player overlaps gate (in onCarpetGateOverlap), not at spawn
+  }
+
+  /** Spawn a Magic Carpet (used after gate puzzle is solved). */
   public spawnDualPathMagicCarpet(spawnX: number, groundY: number) {
       this.currentCarpet = new MagicCarpet(this.scene, spawnX, groundY);
       this.encounterType = 'CARPET';
       this.carpetMode = 'CITY_SIDE';
       this.carpetGatePending = false;
-      this.scene.showNoorMessage("هنا طريق قصير على بساط الريح… وبعده نعود إلى بيت الحكمة.", false, 'greet');
   }
 
-  /** True when the current carpet is the city dual-path one (puzzle required before ride). */
+  /** True when the carpet path is the city dual-path one (gate or carpet; puzzle required before ride). */
   public getCarpetGateRequired(): boolean {
-      return this.carpetMode === 'CITY_SIDE' && this.currentCarpet != null;
+      return this.carpetMode === 'CITY_SIDE' && (this.currentCarpet != null || this.currentCarpetGate != null);
   }
 
-  /** Called when player overlaps the dual-path carpet: show puzzle instead of instant ride. */
+  /** Gate object at the carpet path (overlap triggers puzzle). */
+  public getCurrentCarpetGate(): Phaser.GameObjects.Sprite | null {
+      return this.currentCarpetGate?.active ? this.currentCarpetGate : null;
+  }
+
+  /** Called when player overlaps the gate or the dual-path carpet: show puzzle instead of instant ride. */
   public onCarpetOverlap(): void {
-      if (!this.currentCarpet?.active || this.carpetGatePending) return;
+      if (this.carpetGatePending) return;
       this.carpetGatePending = true;
       this.scene.showPuzzle({
           type: 'CARPET_GATE',
@@ -314,12 +356,30 @@ export class EventManager {
       });
   }
 
-  /** Called by MainScene when CARPET_GATE puzzle is resolved. Correct = ride; wrong = Bayt path. */
+  /** Called when player overlaps the carpet gate (before puzzle). */
+  public onCarpetGateOverlap(): void {
+      if (!this.currentCarpetGate?.active || this.carpetGatePending) return;
+      this.scene.showNoorMessage("لنجرب طريق البساط السحري… لكن أولاً، حل اللغز. 🧩", false, 'greet');
+      this.onCarpetOverlap();
+  }
+
+  /** Called by MainScene when CARPET_GATE puzzle is resolved. Correct = open gate, spawn carpet, ride; wrong = Bayt path. */
   public finishCarpetGatePuzzle(isCorrect: boolean) {
       this.carpetGatePending = false;
       if (isCorrect) {
+          const gx = this.currentCarpetGate?.x ?? 0;
+          const gy = this.currentCarpetGate?.y ?? 0;
+          if (this.currentCarpetGate?.active) {
+              this.currentCarpetGate.destroy();
+              this.currentCarpetGate = null;
+          }
+          this.spawnDualPathMagicCarpet(gx, gy + 50);
           this.triggerCarpetRide();
       } else {
+          if (this.currentCarpetGate?.active) {
+              this.currentCarpetGate.destroy();
+              this.currentCarpetGate = null;
+          }
           if (this.currentCarpet?.active) {
               this.currentCarpet.destroy();
               this.currentCarpet = null;
