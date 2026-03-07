@@ -10,6 +10,7 @@ import { getQuestions } from '../data/questions';
 import { Star } from '../objects/Star';
 import { Heart } from '../objects/Heart';
 import { ShieldItem } from '../objects/ShieldItem';
+import { RewardBox } from '../objects/RewardBox';
 import { MerchantCart } from '../objects/MerchantCart';
 import { StackOfRugs } from '../objects/StackOfRugs';
 import { MagicCarpet } from '../objects/MagicCarpet'; 
@@ -151,6 +152,7 @@ export class MainScene extends Phaser.Scene {
     Star.generateTexture(this);
     Heart.generateTexture(this);
     ShieldItem.generateTexture(this);
+    RewardBox.generateTexture(this);
     MerchantCart.generateTexture(this);
     StackOfRugs.generateTexture(this);
     StreetCat.generateTexture(this); // Gen Cat
@@ -172,9 +174,6 @@ export class MainScene extends Phaser.Scene {
 
     // 5. Setup Collisions
     this.collisionManager.setupCollisions();
-
-    // 5b. Slight camera zoom so road and obstacles feel larger (~15%)
-    this.cameras.main.setZoom(1.15);
 
     // 6. Audio (Step 5 – preferences from localStorage)
     const soundOn = typeof localStorage !== 'undefined' && localStorage.getItem('soundEnabled') !== '0';
@@ -263,10 +262,6 @@ export class MainScene extends Phaser.Scene {
       this.physics.resume();
       this.player.play('run');
       this.playMusic('desert');
-      // Jump tutorial: Nur explains jump before first obstacle appears
-      this.time.delayedCall(1200, () => {
-        this.showNoorMessage('اضغط للقفز وتجاوز العقبات! 🏃', true, 'greet');
-      });
       // Step 2: stage title temporary intro only (2–3 s then fade out)
       this.stageTitle = 'المرحلة 1 – طريق الصحراء';
       this.syncUI();
@@ -376,7 +371,16 @@ export class MainScene extends Phaser.Scene {
     const dt = scaledDelta / 1000;
 
     this.updateSpeed(scaledDelta, dt);
-    const currentSpeed = this.baseSpeed * this.speedModifier;
+    let currentSpeed = this.baseSpeed * this.speedModifier;
+    if (this.environmentManager.getZone() === 'LIBRARY') {
+      const libDist = this.environmentManager.getLibraryRunDistance();
+      const rampMeters = 80;
+      const startFactor = 0.6;
+      const endFactor = 0.8;
+      const t = Math.min(1, libDist / rampMeters);
+      const factor = startFactor + (endFactor - startFactor) * t;
+      currentSpeed *= factor;
+    }
     const frameMove = (currentSpeed * dt); 
 
     if (currentSpeed > 0) {
@@ -582,20 +586,13 @@ export class MainScene extends Phaser.Scene {
   }
 
   private checkGuidanceTriggers() {
-      if (this.firstObstacleRef?.active && !this.guideFlags.firstJump) {
-          const dist = this.firstObstacleRef.x - this.player.x;
-          if (dist < 150 && dist > 20) {
-              this.guideFlags.firstJump = true;
-              this.showNoorMessage("اضغط للقفز وتجاوز العقبات! 🏃", true, 'greet');
-          }
-      }
+      // Jump explanation only at the very beginning (intro); no repeat before first obstacle
   }
 
   private handleResize(gameSize: Phaser.Structs.Size) {
       const width = gameSize.width;
       const height = gameSize.height;
       this.cameras.main.setViewport(0, 0, width, height);
-      this.cameras.main.setZoom(1.15);
       this.environmentManager.resize(width, height);
       if (this.sandstormOverlay) {
           this.sandstormOverlay.setPosition(width/2, height/2);
@@ -784,17 +781,18 @@ export class MainScene extends Phaser.Scene {
 
   public resumeGameFromNoor(isCorrect: boolean) {
       this.playSfx(isCorrect ? 'correctChoice' : 'wrongChoice');
-      if (isCorrect) this.audioManager?.fadeBGMUp();
       if (isCorrect) {
+          this.cameras.main.flash(220, 255, 220, 120);
+          this.audioManager?.fadeBGMUp();
           this.correctAnswersCount++;
-          this.activeQuestion = null; 
+          this.activeQuestion = null;
           this.eventManager.isEncounterOpening = true;
           this.showNoorMessage('أحسنت! استمر، أنت تتقدم.', false, 'encourage');
           this.syncUI();
 
           if (this.eventManager.encounterType === 'GATE' && this.eventManager.currentGate) {
               this.eventManager.currentGate.open();
-              this.handlePostAnswerDelay(false); 
+              this.handlePostAnswerDelay(false);
           } else if (this.eventManager.encounterType === 'CHEST' && this.eventManager.currentChest) {
               this.eventManager.currentChest.open(() => {
                   const reward = Phaser.Math.Between(5, 20);
@@ -803,8 +801,10 @@ export class MainScene extends Phaser.Scene {
                   this.showFloatingText(this.player.x, this.player.y - 100, `+${reward} نجمة!`, '#ffd700');
                   this.handlePostAnswerDelay(false);
               });
-          } 
+          }
       } else {
+          this.cameras.main.shake(180, 0.014);
+          this.showNoorMessage('حاول مرة أخرى.', false, 'warning');
           this.wrongAnswersCount++;
           this.syncUI();
       }
@@ -872,6 +872,15 @@ export class MainScene extends Phaser.Scene {
           this.puzzleTimer = null;
       }
 
+      // --- Clear feedback for all puzzles: sound + visual ---
+      if (isCorrect) {
+          this.playSfx('correctChoice');
+          this.cameras.main.flash(220, 255, 220, 120);
+      } else {
+          this.playSfx('wrongChoice');
+          this.cameras.main.shake(180, 0.014);
+      }
+
       if (puzzle) {
           switch (puzzle.type) {
               case 'STORM':
@@ -894,13 +903,30 @@ export class MainScene extends Phaser.Scene {
                   break;
               case 'CARPET_GATE':
                   this.eventManager.finishCarpetGatePuzzle(isCorrect);
+                  if (isCorrect) {
+                      this.showNoorMessage('أحسنت! 🎉', false, 'success');
+                  } else {
+                      this.showNoorMessage('حاول مرة أخرى.', false, 'warning');
+                  }
                   this.physics.resume();
                   this.player.anims.resume();
                   this.speedModifier = 1.0;
                   this.audioManager?.fadeBGMUp();
                   this.syncUI();
                   return;
+              case 'BRIDGE_BOX':
+                  if (isCorrect) {
+                      this.addScore(15);
+                      this.showFloatingText(this.player.x, this.player.y - 80, '+١٥ نجمة', '#ffd700');
+                  }
+                  break;
           }
+      }
+
+      if (isCorrect) {
+          this.showNoorMessage('أحسنت! 🎉', false, 'success');
+      } else {
+          this.showNoorMessage('حاول مرة أخرى.', false, 'warning');
       }
 
       this.eventManager.reportPuzzleResolved(isCorrect);

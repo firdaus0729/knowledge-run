@@ -4,6 +4,7 @@ import { MainScene } from '../scenes/MainScene';
 import { Star } from '../objects/Star';
 import { Heart } from '../objects/Heart';
 import { ShieldItem } from '../objects/ShieldItem';
+import { RewardBox } from '../objects/RewardBox';
 import { Obstacle, type ObstacleType } from '../objects/Obstacle';
 import { MerchantCart } from '../objects/MerchantCart';
 import { StackOfRugs } from '../objects/StackOfRugs';
@@ -18,6 +19,7 @@ export class SpawnManager {
   public stars!: Phaser.GameObjects.Group;
   public heartsGroup!: Phaser.GameObjects.Group;
   public shieldsGroup!: Phaser.GameObjects.Group;
+  public rewardBoxesGroup!: Phaser.GameObjects.Group;
   public obstacles!: Phaser.GameObjects.Group;
   public merchantCarts!: Phaser.GameObjects.Group;
   public rugStacks!: Phaser.GameObjects.Group;
@@ -49,6 +51,7 @@ export class SpawnManager {
     this.stars = this.scene.add.group({ classType: Star, runChildUpdate: false });
     this.heartsGroup = this.scene.add.group({ classType: Heart, runChildUpdate: false });
     this.shieldsGroup = this.scene.add.group({ classType: ShieldItem, runChildUpdate: false });
+    this.rewardBoxesGroup = this.scene.add.group({ classType: RewardBox, runChildUpdate: false });
     this.obstacles = this.scene.add.group({ classType: Obstacle, runChildUpdate: false });
     this.merchantCarts = this.scene.add.group({ classType: MerchantCart, runChildUpdate: false });
     this.rugStacks = this.scene.add.group({ classType: StackOfRugs, runChildUpdate: false });
@@ -64,6 +67,7 @@ export class SpawnManager {
     this.stars.clear(true, true);
     this.heartsGroup.clear(true, true);
     this.shieldsGroup.clear(true, true);
+    this.rewardBoxesGroup.clear(true, true);
     this.obstacles.clear(true, true);
     this.merchantCarts.clear(true, true);
     this.rugStacks.clear(true, true);
@@ -88,6 +92,7 @@ export class SpawnManager {
     updateGroup(this.stars);
     updateGroup(this.heartsGroup);
     updateGroup(this.shieldsGroup);
+    updateGroup(this.rewardBoxesGroup);
     updateGroup(this.obstacles);
     updateGroup(this.merchantCarts);
     updateGroup(this.rugStacks);
@@ -282,11 +287,11 @@ export class SpawnManager {
       } else {
           if (zone === 'LIBRARY') {
               patterns = [
-                  'BOOK_PILE', 'FLOATING_BOOKS_PATH', 'LIBRARY_SCROLLS', 'BOOK_JUMP', 'FREE_STARS'
+                  'BOOK_PILE', 'FLOATING_BOOKS_PATH', 'LIBRARY_SCROLLS', 'BOOK_JUMP', 'FREE_STARS', 'RISING_PILLAR'
               ];
           } else if (zone === 'DESERT' || zone === 'TRANSITION') {
               patterns = [
-                  'SINGLE_ROCK', 'SINGLE_CACTUS', 'SPIKE_TRAP', 'FREE_STARS', 
+                  'SINGLE_ROCK', 'SINGLE_CACTUS', 'SPIKE_TRAP', 'FREE_STARS', 'RISING_PILLAR',
                   'SNAKE_SOLO', 'FALCON', 'PLATFORM_SIMPLE_HOP', 'CRUMBLING_ARCH',
                   'SCORPION_HUNT', 'VIPER_NEST', 'ARFAJ_PATCH'
               ];
@@ -620,22 +625,28 @@ export class SpawnManager {
               baseDelay = 2600;
               break;
           case 'ELEVATED_BRIDGE_REWARD':
-              // Step up → short elevated bridge (stars + reward) → step down to main road
-              const step1Y = groundY - 85;
-              const step2Y = groundY - 155;
-              const bridgeY = groundY - 200;
-              platform.spawnFloatingPlatform(x + 50, step1Y, 1.2, true);
-              this.addStar(x + 50, step1Y - 50);
-              platform.spawnFloatingPlatform(x + 280, step2Y, 1.2, true);
-              this.addStar(x + 280, step2Y - 50);
-              platform.spawnFloatingPlatform(x + 500, bridgeY, 1.4, true);
-              platform.spawnFloatingPlatform(x + 700, bridgeY, 1.4, true);
-              for (let i = 0; i < 4; i++) this.addStar(x + 520 + i * 55, bridgeY - 55);
-              this.shieldsGroup.add(new ShieldItem(this.scene, x + 600, bridgeY - 60));
-              platform.spawnFloatingPlatform(x + 920, step2Y, 1.2, true);
-              platform.spawnFloatingPlatform(x + 1150, step1Y, 1.2, true);
-              platform.spawnFloatingPlatform(x + 1380, groundY - 40, 1.0, true);
-              baseDelay = 5500;
+              // Ascending platforms: step 1 → step 2 → step 3 → bridge (upper reward path), then step down (wider gaps between steps)
+              const step1Y = groundY - 70;
+              const step2Y = groundY - 130;
+              const step3Y = groundY - 185;
+              const bridgeY = groundY - 220;
+              const gap = 260;
+              platform.spawnFloatingPlatform(x + 45, step1Y, 1.15, true);
+              this.addStar(x + 45, step1Y - 48);
+              platform.spawnFloatingPlatform(x + 45 + gap, step2Y, 1.15, true);
+              this.addStar(x + 45 + gap, step2Y - 48);
+              platform.spawnFloatingPlatform(x + 45 + gap * 2, step3Y, 1.15, true);
+              this.addStar(x + 45 + gap * 2, step3Y - 48);
+              const bridgeStartX = x + 45 + gap * 3;
+              platform.spawnFloatingPlatform(bridgeStartX, bridgeY, 1.35, true);
+              platform.spawnFloatingPlatform(bridgeStartX + 220, bridgeY, 1.35, true);
+              for (let i = 0; i < 5; i++) this.addStar(bridgeStartX + 60 + i * 48, bridgeY - 52);
+              this.rewardBoxesGroup.add(new RewardBox(this.scene, bridgeStartX + 110, bridgeY - 50));
+              platform.spawnFloatingPlatform(bridgeStartX + 220 + gap, step3Y, 1.15, true);
+              platform.spawnFloatingPlatform(bridgeStartX + 220 + gap * 2, step2Y, 1.15, true);
+              platform.spawnFloatingPlatform(bridgeStartX + 220 + gap * 3, step1Y, 1.15, true);
+              platform.spawnFloatingPlatform(bridgeStartX + 220 + gap * 4, groundY - 35, 1.0, true);
+              baseDelay = 7000;
               break;
         case 'DUAL_PATH_EASY_HARD':
             // Dual‑path choice for Stage 2 city:
@@ -688,6 +699,7 @@ export class SpawnManager {
       this.stars.clear(true, true);
       this.heartsGroup.clear(true, true);
       this.shieldsGroup.clear(true, true);
+      this.rewardBoxesGroup.clear(true, true);
       this.obstacles.clear(true, true);
       this.merchantCarts.clear(true, true);
       this.rugStacks.clear(true, true);

@@ -8,7 +8,7 @@ export interface NoorMessage {
 }
 
 // --- MINI PUZZLES (Storm / Library / Dual Path) ---
-export type PuzzleType = 'STORM' | 'LIBRARY' | 'DUAL_PATH' | 'CARPET_GATE';
+export type PuzzleType = 'STORM' | 'LIBRARY' | 'DUAL_PATH' | 'CARPET_GATE' | 'BRIDGE_BOX';
 
 export interface ActivePuzzle {
   type: PuzzleType;

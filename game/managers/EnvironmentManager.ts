@@ -20,6 +20,7 @@ export class EnvironmentManager {
 
   private currentZone: WorldZone = 'DESERT';
   private cityStartDistance: number = 0;
+  private libraryStartDistance: number = 0;
   private hasTriggeredLibrary: boolean = false;
   /** Current visual segment while in CITY (entrance → streets → market → Bayt). */
   private citySegment: CitySegment = 'CITY_ENTRANCE';
@@ -111,6 +112,7 @@ export class EnvironmentManager {
       if (this.currentZone === 'LIBRARY') return;
       
       this.currentZone = 'LIBRARY';
+      this.libraryStartDistance = this.scene.getRunDistance();
 
       // 1. Visual Transition (Background Shelves)
       this.background.transitionToLibrary(100); 
@@ -146,6 +148,12 @@ export class EnvironmentManager {
   
   public getZone(): WorldZone {
       return this.currentZone;
+  }
+
+  /** Distance in meters run while in LIBRARY (for speed ramp). */
+  public getLibraryRunDistance(): number {
+      if (this.currentZone !== 'LIBRARY') return 0;
+      return Math.max(0, this.scene.getRunDistance() - this.libraryStartDistance);
   }
 
   /** Returns current city visual segment (entrance / streets / market / Bayt). */

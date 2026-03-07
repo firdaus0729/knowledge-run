@@ -5,6 +5,7 @@ import { Player } from '../objects/Player';
 import { Star } from '../objects/Star';
 import { Heart } from '../objects/Heart';
 import { ShieldItem } from '../objects/ShieldItem';
+import { RewardBox } from '../objects/RewardBox';
 import { MarketAwning } from '../objects/MarketAwning';
 import { MagicCarpet } from '../objects/MagicCarpet';
 
@@ -46,6 +47,7 @@ export class CollisionManager {
     this.scene.physics.add.overlap(player, spawn.stars, this.handleCollectStar, undefined, this);
     this.scene.physics.add.overlap(player, spawn.heartsGroup, this.handleCollectHeart, undefined, this);
     this.scene.physics.add.overlap(player, spawn.shieldsGroup, this.handleCollectShield, undefined, this);
+    this.scene.physics.add.overlap(player, spawn.rewardBoxesGroup, this.handleCollectRewardBox, undefined, this);
     
     // Magic Carpet Pickup (New)
     // We check overlap every frame in update if active, but collision manager is cleaner
@@ -127,6 +129,10 @@ export class CollisionManager {
       (shield as ShieldItem).collect();
       this.scene.player.activateShield(10000); 
       this.scene.showFloatingText(shield.x, shield.y, `درع حماية!`, '#00d2ff');
+  }
+
+  private handleCollectRewardBox(player: any, box: any) {
+      (box as RewardBox).collect();
   }
 
   private handleHitObstacle(player: any, obstacle: any) {

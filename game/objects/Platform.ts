@@ -154,8 +154,8 @@ export class Platform {
 
   // --- SPAWN PATTERNS ---
 
-  /** useBridge: when true and in city, use Andalusian bridge texture (arch + decoration). */
-  public spawnFloatingPlatform(x: number, y: number, widthScale: number = 1, useBridge: boolean = false) {
+  /** useBridge: when true and in city, use Andalusian bridge texture (arch + decoration). depth: optional (default 10); use lower value so step-down legs draw behind ascending. */
+  public spawnFloatingPlatform(x: number, y: number, widthScale: number = 1, useBridge: boolean = false, depth: number = 10) {
       const key = useBridge && this.currentFloatingKey === 'floating_plat_city'
           ? 'floating_plat_city_bridge'
           : this.currentFloatingKey;
@@ -165,7 +165,7 @@ export class Platform {
       plat.setScale(widthScale, 1);
       plat.body.setSize(plat.width, 20);
       plat.body.setOffset(0, 0);
-      plat.setDepth(10);
+      plat.setDepth(depth);
       plat.body.checkCollision.down = false;
       plat.body.checkCollision.left = false;
       plat.body.checkCollision.right = false;
