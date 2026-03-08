@@ -40,8 +40,10 @@ export class SpawnManager {
   // Logic Control
   private lastSpawnType: string = 'NONE';
   private spawnQueue: { type: string, delay: number, yOffset?: number }[] = [];
-  /** Ensure dual‑path choice appears at least once in Stage 2 city. */
-  private forcedDualPathShown: boolean = false;
+  /** Ensure elevated bridge with reward box appears at least once in city. */
+  private hasSpawnedElevatedBridgeReward: boolean = false;
+  /** Ensure elevated bridge with carpet door appears at least once in city. */
+  private hasSpawnedElevatedBridgeCarpet: boolean = false;
 
   constructor(scene: MainScene) {
     this.scene = scene;
@@ -302,40 +304,28 @@ export class SpawnManager {
                   patterns = [
                       'MERCHANT_CART', 'STACK_OF_RUGS', 'ROOFTOP_START',
                       'PLATFORM_SIMPLE_HOP', 'FREE_STARS', 'STREET_CAT',
-                      'PLATFORM_MINI_STAIRS', 'ELEVATED_BRIDGE_REWARD',
+                      'PLATFORM_MINI_STAIRS', 'ELEVATED_BRIDGE_REWARD', 'ELEVATED_BRIDGE_CARPET',
                       'MOVING_PLATFORM_VERTICAL', 'MOVING_PLATFORM_HORIZONTAL',
-                      'RISING_PILLAR',
-                      'DUAL_PATH_EASY_HARD'
+                      'RISING_PILLAR'
                   ];
               } else {
                   // HARDER CITY
                   patterns = [
-                     'SINGLE_ROCK', 'MERCHANT_CART', 'STACK_OF_RUGS', 'ROOFTOP_START', 'SPIKE_TRAP', 
-                     'PLATFORM_SIMPLE_HOP', 'PLATFORM_MINI_STAIRS', 'FREE_STARS', 
+                     'SINGLE_ROCK', 'MERCHANT_CART', 'STACK_OF_RUGS', 'ROOFTOP_START', 'SPIKE_TRAP',
+                     'PLATFORM_SIMPLE_HOP', 'PLATFORM_MINI_STAIRS', 'FREE_STARS',
                      'SPLIT_PATH_CAVE', 'SHOP_DROP_BOUNCE', 'PLATFORM_BRIDGE',
+                     'ELEVATED_BRIDGE_REWARD', 'ELEVATED_BRIDGE_CARPET',
                      'MOVING_PLATFORM_VERTICAL', 'MOVING_PLATFORM_HORIZONTAL',
-                     'RISING_PILLAR', 'DUAL_PATH_EASY_HARD',
+                     'RISING_PILLAR',
                      'SCORPION_HUNT', 'ARFAJ_PATCH', 'STREET_CAT'
                   ];
               }
           }
       }
 
-      // GUARANTEED DUAL PATH: At most once per Stage 2 city run, and only after some distance
-      // so it doesn't appear too early. Use a random roll so it's not every run.
       const runDist = this.scene.getRunDistance();
       const cityStart = this.scene.getCityStartDistance();
       const distInCity = cityStart >= 0 ? runDist - cityStart : 0;
-      const farEnoughForDualPath = distInCity >= 80; // ~80m into city before dual-path can trigger
-      const rollForGuaranteed = zone === 'CITY' && currentStage === 2 && !this.forcedDualPathShown && !isShopHere && farEnoughForDualPath && Phaser.Math.Between(1, 100) <= 35; // 35% chance to force it once
-      if (rollForGuaranteed) {
-          const baseDelayForced = this.applySpawnLogic('DUAL_PATH_EASY_HARD', x, groundY);
-          this.lastSpawnType = 'DUAL_PATH_EASY_HARD';
-          this.forcedDualPathShown = true;
-          const difficultyForced = Math.max(0.6, 1.0 - ((currentStage - 1) * 0.15));
-          this.nextSpawnTime = (baseDelayForced * difficultyForced) + Phaser.Math.Between(-200, 300);
-          return;
-      }
 
       // IMPOSSIBLE JUMP FILTER
       if (this.lastSpawnType === 'GAP' || this.lastSpawnType === 'SPLIT_PATH_CAVE') {
@@ -343,7 +333,21 @@ export class SpawnManager {
           patterns = patterns.filter(p => p !== 'CRUMBLING_ARCH' && p !== 'ROOFTOP_START');
       }
 
-      const pattern = Phaser.Utils.Array.GetRandom(patterns);
+      // Guarantee both elevated bridge types at least once in city: first reward, then carpet
+      let pattern: string;
+      if (zone === 'CITY' && currentStage === 2 && !isShopHere && distInCity >= 50) {
+          if (!this.hasSpawnedElevatedBridgeReward) {
+              pattern = 'ELEVATED_BRIDGE_REWARD';
+              this.hasSpawnedElevatedBridgeReward = true;
+          } else if (distInCity >= 130 && !this.hasSpawnedElevatedBridgeCarpet) {
+              pattern = 'ELEVATED_BRIDGE_CARPET';
+              this.hasSpawnedElevatedBridgeCarpet = true;
+          } else {
+              pattern = Phaser.Utils.Array.GetRandom(patterns);
+          }
+      } else {
+          pattern = Phaser.Utils.Array.GetRandom(patterns);
+      }
       
       // If we picked ROOFTOP_START, switch to queue mode
       if (pattern === 'ROOFTOP_START') {
@@ -648,36 +652,33 @@ export class SpawnManager {
               platform.spawnFloatingPlatform(bridgeStartX + 220 + gap * 4, groundY - 35, 1.0, true);
               baseDelay = 7000;
               break;
-        case 'DUAL_PATH_EASY_HARD':
-            // Dual‑path choice for Stage 2 city:
-            // 1) Main ground path continues toward بيت الحكمة.
-            // 2) Upper path (lower bridge height so it's reachable) leads to Magic Carpet side ride.
-
-            // --- Ground path (toward Bayt Al‑Hikma) ---
-            this.obstacles.add(new Obstacle(this.scene, x + 140, groundY, obs('spikes')));
-            this.obstacles.add(new Obstacle(this.scene, x + 420, groundY, obs('rock')));
-            this.addStar(x + 140, groundY - 150);
-            this.addStar(x + 420, groundY - 170);
-
-            // --- Upper path: lowered so one jump from ground can reach the first platform ---
-            const pathY = groundY - 100;   // First platform: low enough to reach with normal jump
-            const secondPlatY = groundY - 125; // Second platform: small step up
-            const carpetY = groundY - 142;    // Carpet just above second platform
-
-            platform.spawnFloatingPlatform(x + 40, pathY, 1.4, true);
-            this.addStar(x + 40, pathY - 55);
-
-            const secondPlatX = x + 320;
-            platform.spawnFloatingPlatform(secondPlatX, secondPlatY, 1.4, true);
-            this.addStar(secondPlatX, secondPlatY - 55);
-            this.shieldsGroup.add(new ShieldItem(this.scene, secondPlatX + 40, secondPlatY - 50));
-
-            const carpetX = x + 620;
-            this.scene.eventManager.spawnDualPathCarpetGate(carpetX, carpetY);
-            this.addStar(carpetX, carpetY - 50);
-
-            baseDelay = 5200;
-            break;
+          case 'ELEVATED_BRIDGE_CARPET':
+              // Same ascending bridge layout; at the top: door to magic carpet (puzzle → ride)
+              const step1YC = groundY - 70;
+              const step2YC = groundY - 130;
+              const step3YC = groundY - 185;
+              const bridgeYC = groundY - 220;
+              const gapC = 260;
+              platform.spawnFloatingPlatform(x + 45, step1YC, 1.15, true);
+              this.addStar(x + 45, step1YC - 48);
+              platform.spawnFloatingPlatform(x + 45 + gapC, step2YC, 1.15, true);
+              this.addStar(x + 45 + gapC, step2YC - 48);
+              platform.spawnFloatingPlatform(x + 45 + gapC * 2, step3YC, 1.15, true);
+              this.addStar(x + 45 + gapC * 2, step3YC - 48);
+              const bridgeStartXC = x + 45 + gapC * 3;
+              platform.spawnFloatingPlatform(bridgeStartXC, bridgeYC, 1.35, true);
+              platform.spawnFloatingPlatform(bridgeStartXC + 220, bridgeYC, 1.35, true);
+              this.scene.eventManager.clearCarpetGate();
+              // Door above bridge so it's reachable with one jump from the highest bridge (sense of difficulty)
+              const doorYAboveBridge = 70;
+              this.scene.eventManager.spawnDualPathCarpetGate(bridgeStartXC + 110, bridgeYC - doorYAboveBridge);
+              const stepDownDepthC = 9;
+              platform.spawnFloatingPlatform(bridgeStartXC + 220 + gapC, step3YC, 1.15, true, stepDownDepthC);
+              platform.spawnFloatingPlatform(bridgeStartXC + 220 + gapC * 2, step2YC, 1.15, true, stepDownDepthC);
+              platform.spawnFloatingPlatform(bridgeStartXC + 220 + gapC * 3, step1YC, 1.15, true, stepDownDepthC);
+              platform.spawnFloatingPlatform(bridgeStartXC + 220 + gapC * 4, groundY - 35, 1.0, true, stepDownDepthC);
+              baseDelay = 7000;
+              break;
       }
       return baseDelay;
   }
@@ -694,8 +695,9 @@ export class SpawnManager {
       this.spawnCount = 0;
       this.spawnQueue = [];
       this.lastSpawnType = 'NONE';
-      this.forcedDualPathShown = false;
-      
+      this.hasSpawnedElevatedBridgeReward = false;
+      this.hasSpawnedElevatedBridgeCarpet = false;
+
       this.stars.clear(true, true);
       this.heartsGroup.clear(true, true);
       this.shieldsGroup.clear(true, true);

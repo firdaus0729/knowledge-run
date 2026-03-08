@@ -343,6 +343,15 @@ export class EventManager {
       return this.currentCarpetGate?.active ? this.currentCarpetGate : null;
   }
 
+  /** Clear any existing carpet gate (e.g. before spawning gate on elevated bridge). */
+  public clearCarpetGate(): void {
+      if (this.currentCarpetGate?.active) {
+          this.currentCarpetGate.destroy();
+          this.currentCarpetGate = null;
+      }
+      this.carpetGatePending = false;
+  }
+
   /** Called when player overlaps the gate or the dual-path carpet: show puzzle instead of instant ride. */
   public onCarpetOverlap(): void {
       if (this.carpetGatePending) return;
