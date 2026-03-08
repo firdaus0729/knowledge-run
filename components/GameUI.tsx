@@ -137,7 +137,7 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
             <p className="text-[#ffd700] text-lg md:text-xl font-black mb-4">
               لغز صغير ✨
             </p>
-            <p className="text-white text-sm md:text-base leading-relaxed mb-5">
+            <p className="text-white text-sm md:text-base leading-relaxed mb-5 whitespace-pre-line">
               {gameState.activePuzzle.prompt}
             </p>
             <div className="flex flex-wrap justify-center gap-3">

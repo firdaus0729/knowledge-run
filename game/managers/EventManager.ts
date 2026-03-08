@@ -358,17 +358,17 @@ export class EventManager {
       this.carpetGatePending = true;
       this.scene.showPuzzle({
           type: 'CARPET_GATE',
-          prompt: 'أجب لإثبات أهليتك لركوب البساط: أيّ رمز يمثّل المغامرة؟',
-          options: ['🌟', '📚', '🏠'],
+          prompt: 'بوابة البساط السحري\n\nقبل أن تركب البساط السحري، عليك أن تثبت حكمتك.\n\nاختر الرمز الذي يمثّل المعرفة لتبدأ الرحلة.',
+          options: ['📚', '⚔️', '🏹'],
           correctIndex: 0,
-          timeoutMs: 6000
+          timeoutMs: 8000
       });
   }
 
   /** Called when player overlaps the carpet gate (before puzzle). */
   public onCarpetGateOverlap(): void {
       if (!this.currentCarpetGate?.active || this.carpetGatePending) return;
-      this.scene.showNoorMessage("لنجرب طريق البساط السحري… لكن أولاً، حل اللغز. 🧩", false, 'greet');
+      this.scene.showNoorMessage('قبل أن تركب البساط السحري، عليك أن تثبت حكمتك.', false, 'greet');
       this.onCarpetOverlap();
   }
 

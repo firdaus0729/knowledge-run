@@ -629,19 +629,23 @@ export class SpawnManager {
               baseDelay = 2600;
               break;
           case 'ELEVATED_BRIDGE_REWARD':
-              // Ascending platforms: step 1 → step 2 → step 3 → bridge (upper reward path), then step down (wider gaps between steps)
-              const step1Y = groundY - 70;
-              const step2Y = groundY - 130;
-              const step3Y = groundY - 185;
-              const bridgeY = groundY - 220;
-              const gap = 260;
-              platform.spawnFloatingPlatform(x + 45, step1Y, 1.15, true);
-              this.addStar(x + 45, step1Y - 48);
-              platform.spawnFloatingPlatform(x + 45 + gap, step2Y, 1.15, true);
-              this.addStar(x + 45 + gap, step2Y - 48);
-              platform.spawnFloatingPlatform(x + 45 + gap * 2, step3Y, 1.15, true);
-              this.addStar(x + 45 + gap * 2, step3Y - 48);
-              const bridgeStartX = x + 45 + gap * 3;
+              // Gradual staircase: even step heights and comfortable horizontal gap so player can climb step-by-step
+              const stepH1 = 52;
+              const stepH2 = 52;
+              const stepH3 = 50;
+              const stepH4 = 48;
+              const step1Y = groundY - stepH1;
+              const step2Y = groundY - stepH1 - stepH2;
+              const step3Y = groundY - stepH1 - stepH2 - stepH3;
+              const bridgeY = groundY - stepH1 - stepH2 - stepH3 - stepH4;
+              const gap = 295;
+              platform.spawnFloatingPlatform(x + 55, step1Y, 1.15, true);
+              this.addStar(x + 55, step1Y - 48);
+              platform.spawnFloatingPlatform(x + 50 + gap, step2Y, 1.15, true);
+              this.addStar(x + 55 + gap, step2Y - 48);
+              platform.spawnFloatingPlatform(x + 50 + gap * 2, step3Y, 1.15, true);
+              this.addStar(x + 55 + gap * 2, step3Y - 48);
+              const bridgeStartX = x + 50 + gap * 3;
               platform.spawnFloatingPlatform(bridgeStartX, bridgeY, 1.35, true);
               platform.spawnFloatingPlatform(bridgeStartX + 220, bridgeY, 1.35, true);
               for (let i = 0; i < 5; i++) this.addStar(bridgeStartX + 60 + i * 48, bridgeY - 52);
@@ -650,26 +654,29 @@ export class SpawnManager {
               platform.spawnFloatingPlatform(bridgeStartX + 220 + gap * 2, step2Y, 1.15, true);
               platform.spawnFloatingPlatform(bridgeStartX + 220 + gap * 3, step1Y, 1.15, true);
               platform.spawnFloatingPlatform(bridgeStartX + 220 + gap * 4, groundY - 35, 1.0, true);
-              baseDelay = 7000;
+              baseDelay = 7500;
               break;
           case 'ELEVATED_BRIDGE_CARPET':
-              // Same ascending bridge layout; at the top: door to magic carpet (puzzle → ride)
-              const step1YC = groundY - 70;
-              const step2YC = groundY - 130;
-              const step3YC = groundY - 185;
-              const bridgeYC = groundY - 220;
-              const gapC = 260;
-              platform.spawnFloatingPlatform(x + 45, step1YC, 1.15, true);
-              this.addStar(x + 45, step1YC - 48);
-              platform.spawnFloatingPlatform(x + 45 + gapC, step2YC, 1.15, true);
-              this.addStar(x + 45 + gapC, step2YC - 48);
-              platform.spawnFloatingPlatform(x + 45 + gapC * 2, step3YC, 1.15, true);
-              this.addStar(x + 45 + gapC * 2, step3YC - 48);
-              const bridgeStartXC = x + 45 + gapC * 3;
+              // Same gradual staircase; at the top: door to magic carpet (puzzle → ride)
+              const stepH1C = 52;
+              const stepH2C = 52;
+              const stepH3C = 50;
+              const stepH4C = 48;
+              const step1YC = groundY - stepH1C;
+              const step2YC = groundY - stepH1C - stepH2C;
+              const step3YC = groundY - stepH1C - stepH2C - stepH3C;
+              const bridgeYC = groundY - stepH1C - stepH2C - stepH3C - stepH4C;
+              const gapC = 295;
+              platform.spawnFloatingPlatform(x + 50, step1YC, 1.15, true);
+              this.addStar(x + 50, step1YC - 48);
+              platform.spawnFloatingPlatform(x + 50 + gapC, step2YC, 1.15, true);
+              this.addStar(x + 50 + gapC, step2YC - 48);
+              platform.spawnFloatingPlatform(x + 50 + gapC * 2, step3YC, 1.15, true);
+              this.addStar(x + 50 + gapC * 2, step3YC - 48);
+              const bridgeStartXC = x + 50 + gapC * 3;
               platform.spawnFloatingPlatform(bridgeStartXC, bridgeYC, 1.35, true);
               platform.spawnFloatingPlatform(bridgeStartXC + 220, bridgeYC, 1.35, true);
               this.scene.eventManager.clearCarpetGate();
-              // Door above bridge so it's reachable with one jump from the highest bridge (sense of difficulty)
               const doorYAboveBridge = 70;
               this.scene.eventManager.spawnDualPathCarpetGate(bridgeStartXC + 110, bridgeYC - doorYAboveBridge);
               const stepDownDepthC = 9;
@@ -677,7 +684,7 @@ export class SpawnManager {
               platform.spawnFloatingPlatform(bridgeStartXC + 220 + gapC * 2, step2YC, 1.15, true, stepDownDepthC);
               platform.spawnFloatingPlatform(bridgeStartXC + 220 + gapC * 3, step1YC, 1.15, true, stepDownDepthC);
               platform.spawnFloatingPlatform(bridgeStartXC + 220 + gapC * 4, groundY - 35, 1.0, true, stepDownDepthC);
-              baseDelay = 7000;
+              baseDelay = 7500;
               break;
       }
       return baseDelay;

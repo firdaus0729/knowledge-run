@@ -245,29 +245,46 @@ export class MainScene extends Phaser.Scene {
     canvas.refresh();
   }
 
-  /** Nur appears at center with city-intro style line before the run begins */
+  /** Prelude: Nur + welcome message, then run starts with stage title, then jump instruction from top. */
   private startNurIntro() {
-    const mainMessage =
+    const welcomeMessage =
       'مرحبًا بك في مدينة العلم…\nقد لا تكون الرحلة سهلة،\nلكنني سأكون معك في كل خطوة.';
+    this.currentNoorMessage = { text: welcomeMessage };
     this.nurController.show('greet', {
       position: 'center',
-      message: mainMessage
+      message: welcomeMessage
     });
+    this.syncUI();
 
-    this.time.delayedCall(5500, () => {
+    this.time.delayedCall(5000, () => {
       this.nurController.hide();
+      this.currentNoorMessage = null;
+      this.syncUI();
       this.eventManager.eventPhase = 'INTRO_RUN';
       this.stageStartTime = this.time.now;
       this.baseSpeed = PHYSICS.RUN_SPEED_START ?? PHYSICS.RUN_SPEED;
       this.physics.resume();
       this.player.play('run');
       this.playMusic('desert');
-      // Step 2: stage title temporary intro only (2–3 s then fade out)
+
       this.stageTitle = 'المرحلة 1 – طريق الصحراء';
       this.syncUI();
       this.time.delayedCall(2500, () => {
         this.stageTitle = null;
         this.syncUI();
+        const jumpInstruction = 'اضغط للقفز وتجاوز العقبات!';
+        this.currentNoorMessage = { text: jumpInstruction };
+        this.nurController.show('greet', {
+          position: 'top',
+          message: jumpInstruction,
+          animateFromTop: true
+        });
+        this.syncUI();
+        this.time.delayedCall(4000, () => {
+          this.currentNoorMessage = null;
+          this.nurController.hide();
+          this.syncUI();
+        });
       });
     });
   }

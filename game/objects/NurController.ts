@@ -110,17 +110,23 @@ export class NurController {
       message?: string;
       /** Secondary paragraph (e.g. intro); rendered smaller and less prominent below main message */
       secondaryMessage?: string;
+      /** When true and position is top, animate Nur sliding in from above the screen */
+      animateFromTop?: boolean;
     }
   ) {
     (this.scene as { playSfx?: (t: string) => void }).playSfx?.('noorAppear');
     const { width, height } = this.scene.scale;
     const pos = options?.position || 'top';
 
+    let targetYTop = Math.min(NUR_TOP_Y_PX, height - 90);
     if (pos === 'center') {
       this.container.setPosition(width / 2, height / 2);
     } else {
-      const y = Math.min(NUR_TOP_Y_PX, height - 90);
-      this.container.setPosition(width / 2, y);
+      if (options?.animateFromTop) {
+        this.container.setPosition(width / 2, -140);
+      } else {
+        this.container.setPosition(width / 2, targetYTop);
+      }
     }
 
     const wrapWidth = Math.min(width * 0.8, 420);
@@ -176,14 +182,27 @@ export class NurController {
     }
     const floatAmplitude = 3;
     const floatDuration = 2800;
-    this.floatTween = this.scene.tweens.add({
-      targets: this.container,
-      y: this.container.y - floatAmplitude,
-      duration: floatDuration,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
+    const startFloatTween = () => {
+      this.floatTween = this.scene.tweens.add({
+        targets: this.container,
+        y: this.container.y - floatAmplitude,
+        duration: floatDuration,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    };
+    if (pos === 'top' && options?.animateFromTop) {
+      this.scene.tweens.add({
+        targets: this.container,
+        y: targetYTop,
+        duration: 500,
+        ease: 'Back.easeOut',
+        onComplete: startFloatTween
+      });
+    } else {
+      startFloatTween();
+    }
 
     // Optional very subtle breath on sprite (kept minimal for performance)
     if (this.breathTween) {
