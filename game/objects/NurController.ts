@@ -25,8 +25,10 @@ const NUR_CIRCLE_OFFSET_Y = 8;
 /** Sprite center below circle so raised hand stays inside the circle */
 const NUR_SPRITE_OFFSET_Y = 14;
 const NUR_MESSAGE_OFFSET_Y = 78; // Below 128px image so text does not overlap
-/** When position is 'top': place Nur so gap to speech bubble is ~5px. */
-const NUR_TOP_Y_PX = 278;
+/** When position is 'top' (after prologue): place Nur a bit lower on screen. */
+const NUR_TOP_Y_PX = 328;
+/** When position is 'center' (prelude): place Nur slightly above vertical center. */
+const NUR_CENTER_OFFSET_Y = 52;
 
 export class NurController {
   private scene: Phaser.Scene;
@@ -118,9 +120,9 @@ export class NurController {
     const { width, height } = this.scene.scale;
     const pos = options?.position || 'top';
 
-    let targetYTop = Math.min(NUR_TOP_Y_PX, height - 90);
+    let targetYTop = Math.min(NUR_TOP_Y_PX, height - 70);
     if (pos === 'center') {
-      this.container.setPosition(width / 2, height / 2);
+      this.container.setPosition(width / 2, height / 2 - NUR_CENTER_OFFSET_Y);
     } else {
       if (options?.animateFromTop) {
         this.container.setPosition(width / 2, -140);
@@ -284,11 +286,12 @@ export class NurController {
    */
   public resize(width: number, height: number) {
     if (!this.container.visible) return;
-    const isCenter = Math.abs(this.container.y - height / 2) < 10;
+    const centerY = height / 2 - NUR_CENTER_OFFSET_Y;
+    const isCenter = Math.abs(this.container.y - centerY) < 15;
     if (isCenter) {
-      this.container.setPosition(width / 2, height / 2);
+      this.container.setPosition(width / 2, centerY);
     } else {
-      const y = Math.min(NUR_TOP_Y_PX, height - 90);
+      const y = Math.min(NUR_TOP_Y_PX, height - 70);
       this.container.setPosition(width / 2, y);
     }
     if (this.messageText) {

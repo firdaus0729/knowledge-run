@@ -44,9 +44,11 @@ export class DesertLayers {
     }
 
     public resize(width: number, height: number) {
+        // Raise desert a little so it aligns better with the raised ground
+        const bottomY = height - 42;
         const setLayer = (layer: Phaser.GameObjects.TileSprite) => {
             if (layer) {
-                layer.setPosition(0, height);
+                layer.setPosition(0, bottomY);
                 layer.width = width;
             }
         };

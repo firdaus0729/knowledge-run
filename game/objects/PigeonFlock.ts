@@ -1,5 +1,6 @@
 
 import Phaser from 'phaser';
+import { getGroundY } from '../../constants';
 
 type Formation = 'RANDOM' | 'LINE' | 'V_SHAPE' | 'SWARM';
 type Behavior = 'CRUISE' | 'DIVE' | 'SOAR' | 'OVERTAKE' | 'HOVER';
@@ -119,7 +120,7 @@ export class PigeonFlock {
               baseSpeedY = -200; // Negative = Downward movement in our update logic
               break;
           case 'SOAR':
-              startY = height - 150; // Low ground
+              startY = getGroundY(height) + 22; // Low ground (near run surface)
               baseSpeedX = 200;
               baseSpeedY = 150; // Positive = Upward
               break;

@@ -1,5 +1,9 @@
 
 import Phaser from 'phaser';
+import { getGroundY } from '../../constants';
+
+/** Small offset so ground decor (well, fountain, etc.) sits slightly lower and reads clearly. */
+const GROUND_DECOR_Y_OFFSET = 4;
 import { CityBuilding } from './CityBuilding';
 import { CityPalm } from './CityPalm';
 import { CityLamp } from './CityLamp';
@@ -109,7 +113,7 @@ export class RoadsideArchitecture {
   private spawnLibraryDecor() {
       const x = this.width + 150;
       if (this.isAreaClear(x, 100)) {
-          const y = this.height - 110; // Floor level
+          const y = getGroundY(this.height) + GROUND_DECOR_Y_OFFSET;
           const type = Phaser.Utils.Array.GetRandom(['CANDELABRA', 'GLOBE', 'SCROLL_RACK']) as DecorType;
           
           const decor = new LibraryDecor(this.scene, x, y, type);
@@ -220,7 +224,7 @@ export class RoadsideArchitecture {
   private trySpawnShop(): boolean {
       const x = this.width + 250;
       if (this.isAreaClear(x, 180)) {
-          const y = this.height - 118;
+          const y = getGroundY(this.height) + GROUND_DECOR_Y_OFFSET;
           const building = new CityBuilding(this.scene, x, y);
           building.name = 'shop'; 
           this.decorations.add(building);
@@ -232,7 +236,7 @@ export class RoadsideArchitecture {
   private trySpawnFountain() {
       const x = this.width + 200;
       if (this.isAreaClear(x, 150)) {
-          const y = this.height - 118;
+          const y = getGroundY(this.height) + GROUND_DECOR_Y_OFFSET;
           const fountain = new CityFountain(this.scene, x, y);
           fountain.name = 'fountain';
           this.fountains.add(fountain);
@@ -242,7 +246,7 @@ export class RoadsideArchitecture {
   private trySpawnRuin() {
       const x = this.width + 150;
       if (this.isAreaClear(x, 80)) {
-          const y = this.height - 118;
+          const y = getGroundY(this.height) + GROUND_DECOR_Y_OFFSET;
           const ruin = new RoadsideRuin(this.scene, x, y);
           this.decorations.add(ruin);
       }
@@ -251,7 +255,7 @@ export class RoadsideArchitecture {
   private trySpawnTent() {
       const x = this.width + 200;
       if (this.isAreaClear(x, 120)) {
-          const y = this.height - 130; 
+          const y = getGroundY(this.height) + GROUND_DECOR_Y_OFFSET;
           const tent = new BedouinTent(this.scene, x, y);
           this.decorations.add(tent);
       }
@@ -260,7 +264,7 @@ export class RoadsideArchitecture {
   private trySpawnWell() {
       const x = this.width + 150;
       if (this.isAreaClear(x, 60)) {
-          const y = this.height - 118;
+          const y = getGroundY(this.height) + GROUND_DECOR_Y_OFFSET;
           const well = new AncientWell(this.scene, x, y);
           this.decorations.add(well);
       }
@@ -272,7 +276,7 @@ export class RoadsideArchitecture {
       for (let i = 0; i < count; i++) {
           currentX += (i === 0 ? 0 : spacing + Phaser.Math.Between(-30, 50));
           if (this.isAreaClear(currentX, 80)) {
-              const y = this.height - 118;
+              const y = getGroundY(this.height) + GROUND_DECOR_Y_OFFSET;
               const palm = new CityPalm(this.scene, currentX, y);
               this.decorations.add(palm);
           }
@@ -282,7 +286,7 @@ export class RoadsideArchitecture {
   private trySpawnLamp() {
       const x = this.width + 100;
       if (this.isAreaClear(x, 50)) {
-          const y = this.height - 118;
+          const y = getGroundY(this.height) + GROUND_DECOR_Y_OFFSET;
           const lamp = new CityLamp(this.scene, x, y);
           this.decorations.add(lamp);
       }

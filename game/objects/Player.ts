@@ -1,6 +1,6 @@
 
 import Phaser from 'phaser';
-import { PHYSICS, getPlayerStartX } from '../../constants';
+import { PHYSICS, getPlayerStartX, getPlayerSpawnY } from '../../constants';
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   // ... (Keep existing declarations) ...
@@ -384,8 +384,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.y = 50;
             if(body.velocity.y < 0) this.setVelocityY(0);
         }
-        if (this.y > this.scene.scale.height - 100) {
-            this.y = this.scene.scale.height - 100;
+        const maxY = getPlayerSpawnY(this.scene.scale.height);
+        if (this.y > maxY) {
+            this.y = maxY;
             if(body.velocity.y > 0) this.setVelocityY(0);
         }
         

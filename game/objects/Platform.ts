@@ -1,5 +1,6 @@
 
 import Phaser from 'phaser';
+import { getGroundY, GROUND_TILE_HEIGHT } from '../../constants';
 import { PlatformGenerator } from '../generators/PlatformGenerator';
 import { CityPlatformGenerator } from '../generators/CityPlatformGenerator';
 import { LibraryAssetGenerator } from '../generators/LibraryAssetGenerator';
@@ -32,14 +33,15 @@ export class Platform {
   }
 
   private create() {
-    const groundHeight = 128;
-    
-    // Start with Dirt Road
-    this.groundTile = this.scene.add.tileSprite(0, this.height, this.width, groundHeight, 'ground');
+    const groundY = getGroundY(this.height);
+    const tileBottomY = groundY + GROUND_TILE_HEIGHT;
+
+    // Start with Dirt Road (run surface at groundY, tile extends down 128px)
+    this.groundTile = this.scene.add.tileSprite(0, tileBottomY, this.width, GROUND_TILE_HEIGHT, 'ground');
     this.groundTile.setOrigin(0, 1);
     this.groundTile.setDepth(0); // Ground is base level 0
 
-    this.body = this.scene.add.rectangle(this.width / 2, this.height - 64, this.width * 2, 128, 0x000000, 0);
+    this.body = this.scene.add.rectangle(this.width / 2, groundY + GROUND_TILE_HEIGHT / 2, this.width * 2, GROUND_TILE_HEIGHT, 0x000000, 0);
     this.scene.physics.add.existing(this.body, true);
     
     this.floatingPlatforms = this.scene.add.group({ runChildUpdate: false });
@@ -63,14 +65,16 @@ export class Platform {
   public resize(width: number, height: number) {
       this.width = width;
       this.height = height;
+      const groundY = getGroundY(height);
+      const tileBottomY = groundY + GROUND_TILE_HEIGHT;
 
       if (this.groundTile) {
-          this.groundTile.setPosition(0, height);
+          this.groundTile.setPosition(0, tileBottomY);
           this.groundTile.width = width;
       }
 
       if (this.body && this.body.active && this.activeSequenceEnd === -1) {
-          this.body.setPosition(width / 2, height - 64);
+          this.body.setPosition(width / 2, groundY + GROUND_TILE_HEIGHT / 2);
           this.body.width = width * 2;
           const pBody = this.body.body as Phaser.Physics.Arcade.StaticBody;
           if (pBody) {
@@ -237,7 +241,7 @@ export class Platform {
   }
 
   public spawnGap(startX: number, gapWidth: number) {
-      const groundY = this.height - 128;
+      const groundY = getGroundY(this.height);
       const cliffLeft = this.scene.add.sprite(startX, groundY, 'ground_cliff_left');
       cliffLeft.setOrigin(1, 0);
       cliffLeft.setDepth(1);
@@ -263,7 +267,7 @@ export class Platform {
       const leftEnd = x - width/2;
       const rightStart = x + width/2;
       
-      const leftCliff = this.scene.add.sprite(leftEnd, this.height - 128, 'ground_cliff_left');
+      const leftCliff = this.scene.add.sprite(leftEnd, getGroundY(this.height), 'ground_cliff_left');
       leftCliff.setOrigin(1, 0);
       leftCliff.setDepth(1);
       this.scene.physics.add.existing(leftCliff, true);
@@ -272,7 +276,7 @@ export class Platform {
       lcBody.setOffset(-1800, 0); 
       this.cliffSegments.add(leftCliff);
       
-      const rightCliff = this.scene.add.sprite(rightStart, this.height - 128, 'ground_cliff_right');
+      const rightCliff = this.scene.add.sprite(rightStart, getGroundY(this.height), 'ground_cliff_right');
       rightCliff.setOrigin(0, 0);
       rightCliff.setDepth(1);
       this.scene.physics.add.existing(rightCliff, true);

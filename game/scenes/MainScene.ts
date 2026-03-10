@@ -1,6 +1,6 @@
 
 import Phaser from 'phaser';
-import { PHYSICS, PROGRESS, getPlayerStartX } from '../../constants';
+import { PHYSICS, PROGRESS, getPlayerStartX, GAMEPLAY_CAMERA_ZOOM, getPlayerSpawnY } from '../../constants';
 import { Player } from '../objects/Player';
 import { Obstacle } from '../objects/Obstacle';
 import { Question, GameState, NoorMessage, StageResultsData, ActivePuzzle, PuzzleType } from '../../types';
@@ -165,7 +165,8 @@ export class MainScene extends Phaser.Scene {
 
     // 3. Create Player
     const height = Math.max(10, Math.ceil(this.scale.height));
-    this.player = new Player(this, getPlayerStartX(this.scale.width), height - 200);
+    this.player = new Player(this, getPlayerStartX(this.scale.width), getPlayerSpawnY(height));
+    this.cameras.main.setZoom(GAMEPLAY_CAMERA_ZOOM);
     this.player.setVariableJump(false);
 
     // 4. VFX Overlays
@@ -628,7 +629,7 @@ export class MainScene extends Phaser.Scene {
           this.cinematicVignette.setDisplaySize(width, height);
       }
       if (this.player.y > height + 200 && !this.eventManager.eventPhase.startsWith('INTRO') && !this.player.isFlying) {
-          this.player.y = height - 200;
+          this.player.y = getPlayerSpawnY(height);
           this.player.setVelocityY(0);
       }
   }

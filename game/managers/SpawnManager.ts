@@ -11,7 +11,7 @@ import { StackOfRugs } from '../objects/StackOfRugs';
 import { MarketAwning } from '../objects/MarketAwning';
 import { CityBuilding } from '../objects/CityBuilding';
 import { StreetCat } from '../objects/StreetCat'; // Import Cat
-import { PHYSICS, INTRO_SAFE_DISTANCE_M } from '../../constants';
+import { PHYSICS, INTRO_SAFE_DISTANCE_M, getGroundY } from '../../constants';
 
 export class SpawnManager {
   private scene: MainScene;
@@ -106,14 +106,17 @@ export class SpawnManager {
     const isSandstorm = evt.eventPhase === 'SANDSTORM_ONSET' || evt.eventPhase === 'SANDSTORM_WALK' || evt.eventPhase === 'SANDSTORM_APPROACH';
 
     if (!isSandstorm) {
+        const groundY = getGroundY(this.scene.scale.height);
+        const minAboveGround = 60;
+        const maxAboveGround = 280;
         if (runDistance - this.lastHeartSpawnAt >= this.HEART_SPAWN_DISTANCE_M) {
             this.lastHeartSpawnAt = runDistance;
-            const hY = this.scene.scale.height - Phaser.Math.Between(150, 400);
+            const hY = groundY - Phaser.Math.Between(minAboveGround, maxAboveGround);
             this.heartsGroup.add(new Heart(this.scene, this.scene.scale.width + 100, hY));
         }
         if (runDistance - this.lastShieldSpawnAt >= this.SHIELD_SPAWN_DISTANCE_M) {
             this.lastShieldSpawnAt = runDistance;
-            const sY = this.scene.scale.height - Phaser.Math.Between(150, 400);
+            const sY = groundY - Phaser.Math.Between(minAboveGround, maxAboveGround);
             this.shieldsGroup.add(new ShieldItem(this.scene, this.scene.scale.width + 100, sY));
         }
     }
@@ -133,7 +136,7 @@ export class SpawnManager {
 
   private spawnPattern(currentSpeed: number) {
       const x = this.scene.scale.width + 100;
-      const groundY = this.scene.scale.height - 128;
+      const groundY = getGroundY(this.scene.scale.height);
 
       if (this.scene.eventManager.processQueuedEncounter(x, groundY)) {
           return; 

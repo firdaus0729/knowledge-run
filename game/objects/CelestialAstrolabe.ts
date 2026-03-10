@@ -1,5 +1,6 @@
 
 import Phaser from 'phaser';
+import { getGroundY } from '../../constants';
 import { LibraryAssetGenerator } from '../generators/LibraryAssetGenerator';
 
 export class CelestialAstrolabe extends Phaser.GameObjects.Container {
@@ -176,7 +177,7 @@ export class CelestialAstrolabe extends Phaser.GameObjects.Container {
       // We need absolute world coordinates for the bridge segments
       // The gap is centered at `this.x`.
       
-      const groundY = this.scene.scale.height - 110; 
+      const groundY = getGroundY(this.scene.scale.height) + 18; 
       
       // @ts-ignore - access environment manager
       const platform = this.scene.environmentManager.platform;

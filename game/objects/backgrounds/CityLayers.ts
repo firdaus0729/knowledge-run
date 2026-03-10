@@ -1,5 +1,6 @@
 
 import Phaser from 'phaser';
+import { RUN_SURFACE_FROM_BOTTOM } from '../../../constants';
 import { CityAssetGenerator } from '../../generators/CityAssetGenerator';
 import type { CitySegment } from '../../managers/EnvironmentManager';
 
@@ -63,7 +64,7 @@ export class CityLayers {
     public resize(width: number, height: number) {
         // We want the horizon line (512px down the texture) to sit at `height - 120` on screen.
         const horizonOffset = 512;
-        const groundHeight = 120;
+        const groundHeight = RUN_SURFACE_FROM_BOTTOM;
         const yPos = (height - groundHeight) - horizonOffset;
 
         const positionLayer = (layer: Phaser.GameObjects.TileSprite | undefined) => {

@@ -1,6 +1,6 @@
 
 import Phaser from 'phaser';
-import { PROGRESS, getPlayerStartX } from '../../constants';
+import { PROGRESS, getPlayerStartX, getGroundY, getPlayerSpawnY, GROUND_TILE_HEIGHT } from '../../constants';
 import { MainScene } from '../scenes/MainScene';
 import { MagicGate } from '../objects/MagicGate';
 import { MagicChest } from '../objects/MagicChest';
@@ -297,7 +297,7 @@ export class EventManager {
 
   private spawnMagicCarpet() {
       const spawnX = this.scene.scale.width + 400;
-      const groundY = this.scene.scale.height - 150;
+      const groundY = getGroundY(this.scene.scale.height);
       
       this.currentCarpet = new MagicCarpet(this.scene, spawnX, groundY);
       this.encounterType = 'CARPET';
@@ -435,19 +435,18 @@ export class EventManager {
       // SHOW GROUND LAYERS
       this.scene.environmentManager.background.setFlightMode(false);
 
-      // Bring ground back up to correct position
-      // groundTile origin is (0,1), so y=height is correct bottom alignment
+      // Bring ground back up to correct position (raised ground)
+      const tileBottomY = getGroundY(h) + GROUND_TILE_HEIGHT;
       this.scene.tweens.add({
           targets: platform.groundTile,
-          y: h, 
+          y: tileBottomY,
           duration: 1000,
           ease: 'Power2.out'
       });
 
-      // body is centered, so y=height-64 is correct for a 128px high ground
       this.scene.tweens.add({
           targets: platform.body,
-          y: h - 64,
+          y: getGroundY(h) + GROUND_TILE_HEIGHT / 2,
           duration: 1000,
           ease: 'Power2.out',
           onComplete: () => {
@@ -498,7 +497,7 @@ export class EventManager {
   private triggerLevelEndSequence() {
       this.eventPhase = 'LEVEL_END_APPROACH';
       const spawnX = this.scene.scale.width + 300; 
-      const groundY = this.scene.scale.height - 128;
+      const groundY = getGroundY(this.scene.scale.height);
       this.currentGate = new MagicGate(this.scene, spawnX, groundY - 50);
       this.isEncounterActive = true;
       this.encounterType = 'GATE';
@@ -582,7 +581,7 @@ export class EventManager {
       player.setScale(1);
       player.setAlpha(1);
       player.setDepth(20);
-      player.setPosition(getPlayerStartX(this.scene.scale.width), this.scene.scale.height - 200);
+      player.setPosition(getPlayerStartX(this.scene.scale.width), getPlayerSpawnY(this.scene.scale.height));
       this.scene.time.delayedCall(2000, () => {
           this.beginStage2Intro();
       });
@@ -631,7 +630,7 @@ export class EventManager {
       if (this.eventPhase !== 'NONE') return false;
       this.eventPhase = 'LIBRARY_APPROACH';
       const { width, height } = this.scene.scale;
-      const groundY = height - 120;
+      const groundY = getGroundY(height);
       this.libraryBuilding = new LibraryBuilding(this.scene, width + 400, groundY);
       this.scene.add.existing(this.libraryBuilding);
       this.scene.showNoorMessage("انظر! بيت الحكمة! 🏛️", false, 'greet');
@@ -721,7 +720,7 @@ export class EventManager {
   private triggerSandstormDiscovery() {
       this.eventPhase = 'SANDSTORM_APPROACH';
       const { width, height } = this.scene.scale;
-      const groundY = height - 130; 
+      const groundY = getGroundY(height);
       this.refugeTent = new BedouinTent(this.scene, width + 400, groundY);
       this.refugeTent.setDepth(15);
       this.scene.add.existing(this.refugeTent);

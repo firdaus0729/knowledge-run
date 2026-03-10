@@ -1,5 +1,6 @@
 
 import Phaser from 'phaser';
+import { RUN_SURFACE_FROM_BOTTOM } from '../../../constants';
 import { LibraryAssetGenerator } from '../../generators/LibraryAssetGenerator';
 
 export class LibraryLayers {
@@ -65,7 +66,7 @@ export class LibraryLayers {
 
     public resize(width: number, height: number) {
         const horizonOffset = 512;
-        const groundHeight = 120;
+        const groundHeight = RUN_SURFACE_FROM_BOTTOM;
         const yPos = (height - groundHeight) - horizonOffset;
 
         const setLayer = (layer: Phaser.GameObjects.TileSprite) => {
