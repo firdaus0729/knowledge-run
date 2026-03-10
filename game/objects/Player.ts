@@ -113,10 +113,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.setVelocityY(0);
       this.setAccelerationY(0);
       
-      // Add Drag for inertia feel
-      this.body.setDragY(300);
-      // Cap velocity so we don't go supersonic
-      this.body.setMaxVelocity(1000, 400);
+      // Softer drag for smoother, easier flight
+      this.body.setDragY(420);
+      // Cap velocity for gentle control
+      this.body.setMaxVelocity(800, 320);
       
       // Visual change
       this.play('jump'); // Static pose
@@ -124,8 +124,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       
       this.carpetSprite.setVisible(true);
       
-      // Initial boost up
-      this.setVelocityY(-300);
+      // Gentler initial boost up
+      this.setVelocityY(-220);
   }
 
   public stopFlying() {
@@ -372,11 +372,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const isHeld = (this.jumpKey?.isDown) || (this.cursors?.up.isDown) || this.isHoldingJump;
         
         if (isHeld) {
-            // Accelerate UP
-            this.setAccelerationY(-900); 
+            // Gentle climb (easier control)
+            this.setAccelerationY(-620); 
         } else {
-            // Fall slowly (Gravity/Drift)
-            this.setAccelerationY(500); 
+            // Soft drift down (smoother descent)
+            this.setAccelerationY(380); 
         }
         
         // Soft Bounds (Bounce off edges smoothly)

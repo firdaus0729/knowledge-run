@@ -58,6 +58,8 @@ export interface GameState {
   musicEnabled?: boolean;
   /** Active mini-puzzle (storm / library / dual path); null when none. */
   activePuzzle?: ActivePuzzle | null;
+  /** True when the pause menu is open (Resume / Restart / Return to menu). */
+  isPaused?: boolean;
 }
 
 export interface Question {

@@ -66,7 +66,8 @@ export class MainScene extends Phaser.Scene {
   private activeMessage: string | null = null; 
   private currentNoorMessage: NoorMessage | null = null;
   private messageTimer: Phaser.Time.TimerEvent | null = null;
-  private isSoftPaused: boolean = false; 
+  private isSoftPaused: boolean = false;
+  private isPausedMenu: boolean = false; 
   private activeQuestion: Question | null = null; 
   private questionPool: Question[] = [];
   
@@ -375,6 +376,7 @@ export class MainScene extends Phaser.Scene {
     if (this.eventManager.eventPhase === 'NUR_INTRO') return;
     if (this.isGameOver) return;
     if (this.activeMessage || this.activeQuestion) return;
+    if (this.isPausedMenu) return;
 
     // When storm is active, keep all obstacles/collectibles cleared so player cannot lose to obstacles
     const phase = this.eventManager.eventPhase;
@@ -972,7 +974,51 @@ export class MainScene extends Phaser.Scene {
           stageTitle: this.stageTitle === null ? null : this.stageTitle,
           soundEnabled: this.getSoundEnabled(),
           musicEnabled: this.getMusicEnabled(),
-          activePuzzle: this.activePuzzle
+          activePuzzle: this.activePuzzle,
+          isPaused: this.isPausedMenu
+      });
+  }
+
+  /** Pause menu: open (physics pause, show menu). */
+  public pauseGame() {
+      if (this.isGameOver || this.isPausedMenu) return;
+      this.isPausedMenu = true;
+      this.physics.pause();
+      this.audioManager?.playSfx('pauseOpen');
+      this.syncUI();
+  }
+
+  /** Pause menu: close (resume). */
+  public resumeGame() {
+      if (!this.isPausedMenu) return;
+      this.isPausedMenu = false;
+      this.physics.resume();
+      this.audioManager?.playSfx('pauseClose');
+      this.syncUI();
+  }
+
+  /** Pause menu: restart current run from the beginning. */
+  public restartStage() {
+      this.isPausedMenu = false;
+      this.physics.resume();
+      this.scene.restart();
+  }
+
+  /** Pause menu: return to main menu. */
+  public returnToMainMenu() {
+      this.isPausedMenu = false;
+      this.physics.resume();
+      this.onScoreUpdate({
+          distance: this.runDistance,
+          stars: this.collectedStarsCount,
+          hearts: this.hearts,
+          isGameOver: this.isGameOver,
+          stageResults: undefined,
+          returnToMenu: true
+      } as GameState);
+      this.cameras.main.fadeOut(500, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+          this.scene.start('HomeScene');
       });
   }
 

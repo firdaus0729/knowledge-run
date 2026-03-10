@@ -54,7 +54,8 @@ function App() {
         stageTitle: 'stageTitle' in d ? (d.stageTitle as string | null) : prev.stageTitle,
         soundEnabled: d.soundEnabled !== undefined ? d.soundEnabled as boolean : prev.soundEnabled,
         musicEnabled: d.musicEnabled !== undefined ? d.musicEnabled as boolean : prev.musicEnabled,
-        activePuzzle: 'activePuzzle' in d ? (d.activePuzzle as GameState['activePuzzle']) : prev.activePuzzle
+        activePuzzle: 'activePuzzle' in d ? (d.activePuzzle as GameState['activePuzzle']) : prev.activePuzzle,
+        isPaused: 'isPaused' in d ? (d.isPaused as boolean) : prev.isPaused
       }));
     });
 
@@ -176,6 +177,34 @@ function App() {
     }
   };
 
+  const handlePauseClick = () => {
+    if (gameRef.current) {
+      const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
+      scene?.pauseGame?.();
+    }
+  };
+
+  const handleResumeClick = () => {
+    if (gameRef.current) {
+      const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
+      scene?.resumeGame?.();
+    }
+  };
+
+  const handleRestartStageClick = () => {
+    if (gameRef.current) {
+      const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
+      scene?.restartStage?.();
+    }
+  };
+
+  const handleReturnToMenuClick = () => {
+    if (gameRef.current) {
+      const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
+      scene?.returnToMainMenu?.();
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (gameState.isGameOver && e.key.toLowerCase() === 'r') {
@@ -225,6 +254,10 @@ function App() {
             onPuzzleAnswer={handlePuzzleAnswer}
             onSoundToggle={handleSoundToggle}
             onMusicToggle={handleMusicToggle}
+            onPauseClick={handlePauseClick}
+            onResumeClick={handleResumeClick}
+            onRestartStageClick={handleRestartStageClick}
+            onReturnToMenuClick={handleReturnToMenuClick}
           />
           {gameState.stageResults && (
             <StageResultsUI

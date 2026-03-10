@@ -34,8 +34,8 @@ export const UI_STRINGS = {
 export const PROGRESS = {
   /** Stage 1 length in meters (~90–100 s at ~4.8 m/s) */
   STAGE_1_LENGTH_M: 450,
-  /** Stage 2 length in meters (progress bar cap; can be tuned) */
-  STAGE_2_LENGTH_M: 500,
+  /** Stage 2 length in meters (progress bar cap; longer city before library) */
+  STAGE_2_LENGTH_M: 600,
   /** Converts world movement to displayed meters (~4.8 m/s at RUN_SPEED 350) */
   DISTANCE_SCALE: 0.0137,
 };

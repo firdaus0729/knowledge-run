@@ -45,12 +45,12 @@ export class EnvironmentManager {
     this.checkZoneProgression();
   }
 
-  /** Distance in meters into city before library – part of Stage 2 progression (tunable) */
-  private readonly LIBRARY_TRIGGER_DISTANCE = 250;
+  /** Distance in meters into city before library – longer so player spends more time in city (tunable) */
+  private readonly LIBRARY_TRIGGER_DISTANCE = 420;
   /** Distance bands inside Stage 2 (city) to drive visual progression. */
-  private readonly CITY_ENTRANCE_MAX = 120; // Just inside the gate
-  private readonly CITY_STREET_MAX = 260;   // Simple streets
-  private readonly CITY_MARKET_MAX = 400;   // Market / dense core (Bayt after this)
+  private readonly CITY_ENTRANCE_MAX = 180;  // Just inside the gate
+  private readonly CITY_STREET_MAX = 350;   // Simple streets
+  private readonly CITY_MARKET_MAX = 520;   // Market / dense core (Bayt after this)
 
   private checkZoneProgression() {
       if (this.currentZone === 'CITY') {

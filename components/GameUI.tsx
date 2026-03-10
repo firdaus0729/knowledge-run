@@ -10,9 +10,13 @@ interface GameUIProps {
   onMessageDismiss?: () => void;
   onSoundToggle?: () => void;
   onMusicToggle?: () => void;
+  onPauseClick?: () => void;
+  onResumeClick?: () => void;
+  onRestartStageClick?: () => void;
+  onReturnToMenuClick?: () => void;
 }
 
-export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, onMessageDismiss, onSoundToggle, onMusicToggle, onPuzzleAnswer }) => {
+export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, onMessageDismiss, onSoundToggle, onMusicToggle, onPuzzleAnswer, onPauseClick, onResumeClick, onRestartStageClick, onReturnToMenuClick }) => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showResult, setShowResult] = useState<'correct' | 'wrong' | null>(null);
 
@@ -206,6 +210,38 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
           </div>
       )}
 
+      {/* PAUSE MENU */}
+      {gameState.isPaused && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm p-6">
+          <div className="bg-[#1a1625] border-2 border-[#ffd700]/50 rounded-2xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-[#ffd700] text-xl font-black text-center mb-6">إيقاف مؤقت</h3>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={onResumeClick}
+                className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 border border-emerald-400/50 text-white font-bold transition-colors"
+              >
+                متابعة اللعب
+              </button>
+              <button
+                type="button"
+                onClick={onRestartStageClick}
+                className="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 border border-amber-400/50 text-white font-bold transition-colors"
+              >
+                إعادة المرحلة
+              </button>
+              <button
+                type="button"
+                onClick={onReturnToMenuClick}
+                className="w-full py-3 px-4 rounded-xl bg-black/60 hover:bg-black/80 border border-white/20 text-white font-bold transition-colors"
+              >
+                العودة للقائمة الرئيسية
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 2. SYSTEM MESSAGE OVERLAY (For major unlocks only) */}
       {gameState.activeMessage && (
           <div 
@@ -243,8 +279,20 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
                 <span className="text-xl md:text-2xl font-black">{gameState.stars}</span>
               </div>
             </div>
-            {/* Distance + Hearts + Audio toggles – top right */}
+            {/* Distance + Hearts + Audio + Pause – top right */}
             <div className="flex items-center gap-2 md:gap-3">
+              {/* Pause button (player icon) – only when playing and not game over */}
+              {!gameState.isGameOver && gameState.isPaused !== true && onPauseClick && (
+                <button
+                  type="button"
+                  onClick={onPauseClick}
+                  className="p-1.5 md:p-2 rounded-lg bg-black/40 border border-white/10 hover:bg-black/60 hover:border-[#ffd700]/40 transition-colors pointer-events-auto"
+                  title="إيقاف مؤقت"
+                  aria-label="Pause"
+                >
+                  <span className="text-lg md:text-xl">⏸</span>
+                </button>
+              )}
               {/* Step 5 – Audio: Sound & Music toggles (persisted in localStorage) */}
               <div className="flex items-center gap-1 pointer-events-auto">
                 {onSoundToggle && (

@@ -190,8 +190,8 @@ export class EventManager {
               this.scene.environmentManager.transitionLibraryToCity();
           }
 
-          // End flight after duration (shorter when used as a side path in the city)
-          const maxDuration = this.carpetMode === 'LIBRARY' ? 15000 : 7000;
+          // End flight after duration (longer for library so player enjoys flying more)
+          const maxDuration = this.carpetMode === 'LIBRARY' ? 26000 : 9000;
           if (this.carpetTimer > maxDuration) {
               this.endCarpetRide();
           }
