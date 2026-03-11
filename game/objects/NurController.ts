@@ -116,7 +116,6 @@ export class NurController {
       animateFromTop?: boolean;
     }
   ) {
-    (this.scene as { playSfx?: (t: string) => void }).playSfx?.('noorAppear');
     const { width, height } = this.scene.scale;
     const pos = options?.position || 'top';
 

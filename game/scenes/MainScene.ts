@@ -22,7 +22,7 @@ import { EnvironmentManager } from '../managers/EnvironmentManager';
 import { SpawnManager } from '../managers/SpawnManager';
 import { EventManager } from '../managers/EventManager';
 import { CollisionManager } from '../managers/CollisionManager';
-import { AudioManager, type SfxType, type BGMStage } from '../managers/AudioManager';
+import { AudioManager } from '../managers/AudioManager';
 
 export class MainScene extends Phaser.Scene {
   declare scale: Phaser.Scale.ScaleManager;
@@ -108,26 +108,18 @@ export class MainScene extends Phaser.Scene {
 
   preload() {
       this.load.crossOrigin = 'anonymous';
-      // BGM – Complete Sound Library: BGM_01 Main Runner, BGM_02–06 World variations (city = BGM_02)
-      this.load.audio('BGM_01', 'https://assets.mixkit.co/music/preview/mixkit-desert-wind-1290.mp3');
-      this.load.audio('BGM_02', 'https://assets.mixkit.co/music/preview/mixkit-a-very-long-cinematic-passage-2.mp3');
-      // SFX – spec keys and placeholder URLs (replace with final assets)
-      this.load.audio('SFX_Jump', 'https://assets.mixkit.co/active_storage/sfx/2568-pop-click.mp3');
-      this.load.audio('SFX_Land', 'https://assets.mixkit.co/active_storage/sfx/2568-pop-click.mp3');
-      this.load.audio('SFX_StarCollect', 'https://assets.mixkit.co/active_storage/sfx/2019-success-bell-notification.mp3');
-      this.load.audio('SFX_EventAppear', 'https://assets.mixkit.co/active_storage/sfx/2570-magical-sweep.mp3');
-      this.load.audio('SFX_CorrectChoice', 'https://assets.mixkit.co/active_storage/sfx/1998-correct-answer-reward.mp3');
-      this.load.audio('SFX_WrongChoice', 'https://assets.mixkit.co/active_storage/sfx/2003-fail-buzzer.mp3');
-      this.load.audio('SFX_NoorAppear', 'https://assets.mixkit.co/active_storage/sfx/2019-success-bell-notification.mp3');
-      this.load.audio('SFX_NoorHelp', 'https://assets.mixkit.co/active_storage/sfx/1998-correct-answer-reward.mp3');
-      this.load.audio('SFX_ButtonConfirm', 'https://assets.mixkit.co/active_storage/sfx/2568-pop-click.mp3');
-      this.load.audio('SFX_ObjectActivate', 'https://assets.mixkit.co/active_storage/sfx/2570-magical-sweep.mp3');
-      this.load.audio('SFX_RewardMoment', 'https://assets.mixkit.co/active_storage/sfx/2015-short-success-fanfare.mp3');
-      this.load.audio('SFX_LevelComplete', 'https://assets.mixkit.co/active_storage/sfx/2015-short-success-fanfare.mp3');
-      this.load.audio('SFX_Storm', 'https://assets.mixkit.co/active_storage/sfx/2582-wind-in-the-trees.mp3');
-      this.load.audio('SFX_PauseOpen', 'https://assets.mixkit.co/active_storage/sfx/2568-pop-click.mp3');
-      this.load.audio('SFX_PauseClose', 'https://assets.mixkit.co/active_storage/sfx/2568-pop-click.mp3');
-      this.load.audio('ending_theme', 'https://assets.mixkit.co/music/preview/mixkit-a-very-long-cinematic-passage-2.mp3');
+      // Audio – from public/audio (no overlapping long tracks)
+      this.load.audio('sfx_button', '/audio/button.wav');
+      this.load.audio('sfx_star', '/audio/star.wav');
+      this.load.audio('sfx_jump', '/audio/jump.wav');
+      this.load.audio('sfx_box', '/audio/box.wav');
+      this.load.audio('sfx_damage', '/audio/damage.wav');
+      this.load.audio('sfx_sandstorm', '/audio/sandstorm.wav');
+      this.load.audio('sfx_fail', '/audio/fail.wav');
+      this.load.audio('sfx_magicGate', '/audio/magic-gate.mp3');
+      this.load.audio('sfx_stageSuccess', '/audio/stageSuccess.wav');
+      this.load.audio('sfx_flying', '/audio/flying.wav');
+      this.load.audio('bgm_main', '/audio/background-music.mp3');
       // Nur character images (5 expressions) – served from public/nur/
       this.load.image('nur_img_greet', '/nur/nur_greet.png');
       this.load.image('nur_img_encourage', '/nur/nur_encourage.png');
@@ -190,14 +182,24 @@ export class MainScene extends Phaser.Scene {
     this.startNurIntro();
   }
 
-  /** Step 5 – Audio: play one-shot SFX (respects soundEnabled). */
-  public playSfx(type: SfxType): void {
-    this.audioManager?.playSfx(type);
+  /** Audio: button press (pause, toggles, etc.). */
+  public playButton(): void {
+    this.audioManager?.playButton();
   }
 
-  /** Step 5 – Audio: switch BGM by stage (no restart if same stage). */
-  public playMusic(stage: BGMStage): void {
-    this.audioManager?.playMusic(stage);
+  /** Audio: star collected. */
+  public playStar(): void {
+    this.audioManager?.playStar();
+  }
+
+  /** Audio: jump. */
+  public playJump(): void {
+    this.audioManager?.playJump();
+  }
+
+  /** At stage 1 magic gate: 5 sec silence then play magic-gate.mp3. */
+  public playMagicGateAfterSilence(): void {
+    this.audioManager?.playMagicGateAfterSilence();
   }
 
   public setSoundEnabled(value: boolean): void {
@@ -267,7 +269,6 @@ export class MainScene extends Phaser.Scene {
       this.baseSpeed = PHYSICS.RUN_SPEED_START ?? PHYSICS.RUN_SPEED;
       this.physics.resume();
       this.player.play('run');
-      this.playMusic('desert');
 
       this.stageTitle = 'المرحلة 1 – طريق الصحراء';
       this.syncUI();
@@ -300,8 +301,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   public showDesertStageResults() {
-    this.playSfx('levelComplete');
-    this.audioManager?.fadeBGMDown();
+    this.audioManager?.playStageSuccess();
     this.stageResults = {
       stageName: 'نهاية الصحراء',
       distance: this.runDistance,
@@ -316,8 +316,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   public showLibraryStageResults() {
-    this.playSfx('levelComplete');
-    this.audioManager?.fadeBGMDown();
+    this.audioManager?.stopBGM();
+    this.audioManager?.playStageSuccess();
     const distInCity = this.runDistance - this.cityStartDistanceForStats;
     this.stageResults = {
       stageName: 'بيت الحكمة',
@@ -333,7 +333,6 @@ export class MainScene extends Phaser.Scene {
   }
 
   public continueAfterStageResults() {
-    this.audioManager?.fadeBGMUp();
     if (this.pendingTransition === 'DESERT_END') {
       if (this.nurController) this.nurController.hide();
       this.eventManager.continueDesertTransition();
@@ -547,8 +546,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   public startSandstorm() {
-      this.playSfx('storm');
-      this.audioManager?.fadeBGMDown();
+      this.audioManager?.pauseBGM();
+      this.audioManager?.startSandstorm();
       // If a question was open (chest encounter), clear it and resume physics so we don't get stuck
       this.clearQuestionAndResumePhysics();
       this.eventManager.isEncounterActive = false;
@@ -576,6 +575,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   public endSandstorm() {
+      this.audioManager?.stopSandstorm();
+      this.audioManager?.resumeBGM();
       this.tweens.add({ targets: this.sandstormOverlay, alpha: 0, duration: 2000, ease: 'Sine.easeInOut' });
       this.triggerSandstormEffects(false);
       this.tweens.add({ targets: this, speedModifier: 1.0, duration: 1000 });
@@ -735,6 +736,7 @@ export class MainScene extends Phaser.Scene {
           this.gameOver();
           return;
       }
+      this.audioManager?.playDamage();
       this.hearts--;
       if (this.hearts <= 0) this.gameOver();
   }
@@ -772,7 +774,6 @@ export class MainScene extends Phaser.Scene {
   }
 
   public pauseGameplayForQuestion(specificId?: string) {
-      this.audioManager?.fadeBGMDown();
       this.speedModifier = 0; 
       this.player.anims.pause();
       if (this.physics.world.isPaused === false) {
@@ -800,10 +801,9 @@ export class MainScene extends Phaser.Scene {
   }
 
   public resumeGameFromNoor(isCorrect: boolean) {
-      this.playSfx(isCorrect ? 'correctChoice' : 'wrongChoice');
       if (isCorrect) {
+          this.audioManager?.playPuzzleCorrect();
           this.cameras.main.flash(220, 255, 220, 120);
-          this.audioManager?.fadeBGMUp();
           this.correctAnswersCount++;
           this.activeQuestion = null;
           this.eventManager.isEncounterOpening = true;
@@ -817,12 +817,12 @@ export class MainScene extends Phaser.Scene {
               this.eventManager.currentChest.open(() => {
                   const reward = Phaser.Math.Between(5, 20);
                   this.addScore(reward);
-                  this.playSfx('rewardMoment');
                   this.showFloatingText(this.player.x, this.player.y - 100, `+${reward} نجمة!`, '#ffd700');
                   this.handlePostAnswerDelay(false);
               });
           }
       } else {
+          this.audioManager?.playDamage();
           this.cameras.main.shake(180, 0.014);
           this.showNoorMessage('حاول مرة أخرى.', false, 'warning');
           this.wrongAnswersCount++;
@@ -861,7 +861,6 @@ export class MainScene extends Phaser.Scene {
       // Avoid stacking puzzles
       if (this.activePuzzle) return;
       this.activePuzzle = puzzle;
-      this.audioManager?.fadeBGMDown();
       this.speedModifier = 0;
       this.player.anims.pause();
       if (!this.physics.world.isPaused) {
@@ -894,10 +893,10 @@ export class MainScene extends Phaser.Scene {
 
       // --- Clear feedback for all puzzles: sound + visual ---
       if (isCorrect) {
-          this.playSfx('correctChoice');
+          this.audioManager?.playPuzzleCorrect();
           this.cameras.main.flash(220, 255, 220, 120);
       } else {
-          this.playSfx('wrongChoice');
+          this.audioManager?.playDamage();
           this.cameras.main.shake(180, 0.014);
       }
 
@@ -931,7 +930,6 @@ export class MainScene extends Phaser.Scene {
                   this.physics.resume();
                   this.player.anims.resume();
                   this.speedModifier = 1.0;
-                  this.audioManager?.fadeBGMUp();
                   this.syncUI();
                   return;
               case 'BRIDGE_BOX':
@@ -953,7 +951,6 @@ export class MainScene extends Phaser.Scene {
       this.physics.resume();
       this.player.anims.resume();
       this.speedModifier = 1.0;
-      this.audioManager?.fadeBGMUp();
       this.syncUI();
   }
 
@@ -985,7 +982,7 @@ export class MainScene extends Phaser.Scene {
       if (this.isGameOver || this.isPausedMenu) return;
       this.isPausedMenu = true;
       this.physics.pause();
-      this.audioManager?.playSfx('pauseOpen');
+      this.audioManager?.pauseBGM();
       this.syncUI();
   }
 
@@ -993,8 +990,8 @@ export class MainScene extends Phaser.Scene {
   public resumeGame() {
       if (!this.isPausedMenu) return;
       this.isPausedMenu = false;
+      this.audioManager?.resumeBGM();
       this.physics.resume();
-      this.audioManager?.playSfx('pauseClose');
       this.syncUI();
   }
 
@@ -1002,6 +999,7 @@ export class MainScene extends Phaser.Scene {
   public restartStage() {
       this.isPausedMenu = false;
       this.physics.resume();
+      this.audioManager?.startBGM();
       this.scene.restart();
   }
 
@@ -1081,10 +1079,7 @@ export class MainScene extends Phaser.Scene {
       });
 
       this.time.delayedCall(800, () => {
-          try {
-              const s = this.sound.get('ending_theme');
-              if (s) s.play();
-          } catch (_) { /* placeholder may not exist */ }
+          this.audioManager?.stopAllLongAudio();
       });
 
       this.time.delayedCall(2200, () => {
@@ -1124,6 +1119,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   private gameOver() {
+      this.audioManager?.playFail();
+      this.audioManager?.stopBGM();
       this.isGameOver = true;
       this.physics.pause();
       this.player.setTint(0x555555);

@@ -16,6 +16,8 @@ type GameStatus = 'home' | 'how_to_play' | 'age_select' | 'game_details' | 'play
 function App() {
   const gameRef = useRef<Phaser.Game | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const uiButtonAudioRef = useRef<HTMLAudioElement | null>(null);
+  const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
   
   // Game Flow: home -> how_to_play -> age_select -> game_details -> playing
   const [gameStatus, setGameStatus] = useState<GameStatus>('home');
@@ -70,8 +72,69 @@ function App() {
     };
   }, []);
 
+  // Global BGM controller (HTMLAudio) so it can start on first user gesture.
+  useEffect(() => {
+    try {
+      if (!bgmAudioRef.current) {
+        const a = new Audio('/audio/background-music.mp3');
+        a.preload = 'auto';
+        a.loop = true;
+        a.volume = 0.28;
+        bgmAudioRef.current = a;
+      }
+      (globalThis as any).__kr_bgm = {
+        start: async () => {
+          const a = bgmAudioRef.current;
+          if (!a) return;
+          try { await a.play(); } catch (_) { /* autoplay blocked */ }
+        },
+        pause: () => { bgmAudioRef.current?.pause(); },
+        resume: async () => {
+          const a = bgmAudioRef.current;
+          if (!a) return;
+          try { await a.play(); } catch (_) { /* autoplay blocked */ }
+        },
+        stop: () => {
+          const a = bgmAudioRef.current;
+          if (!a) return;
+          a.pause();
+          try { a.currentTime = 0; } catch (_) { /* ignore */ }
+        }
+      };
+    } catch (_) {
+      // ignore
+    }
+    return () => {
+      try { delete (globalThis as any).__kr_bgm; } catch (_) { /* ignore */ }
+    };
+  }, []);
+
+  const playUIButton = () => {
+    try {
+      if (!uiButtonAudioRef.current) {
+        const a = new Audio('/audio/button.wav');
+        a.preload = 'auto';
+        a.volume = 0.6;
+        uiButtonAudioRef.current = a;
+      }
+      // Clone so rapid clicks don't cut each other off.
+      const a = uiButtonAudioRef.current.cloneNode(true) as HTMLAudioElement;
+      a.volume = uiButtonAudioRef.current.volume;
+      void a.play();
+    } catch (_) {
+      // ignore (browser policy / missing audio device)
+    }
+
+    // Also trigger Phaser-side (when MainScene exists).
+    if (gameRef.current) {
+      const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
+      scene?.playButton?.();
+    }
+  };
+
   // 1. Home -> How To Play
   const handleStartGameClick = () => {
+      playUIButton();
       if (gameRef.current) {
           const homeScene = gameRef.current.scene.getScene('HomeScene') as HomeScene;
           
@@ -87,17 +150,22 @@ function App() {
 
   // 2. How To Play -> Age Selection
   const handleHowToPlayNext = () => {
+      playUIButton();
       setGameStatus('age_select');
   };
 
   // 3. Age Selection -> Game Details
   const handleAgeSelect = (age: AgeGroup) => {
+      playUIButton();
       setGameState(prev => ({ ...prev, ageGroup: age }));
       setGameStatus('game_details');
   };
 
   // 4. Game Details -> Playing
   const handleGameDetailsNext = () => {
+      playUIButton();
+      // Start background music when entering the actual game.
+      try { void (globalThis as any).__kr_bgm?.start?.(); } catch (_) { /* ignore */ }
       if (gameRef.current) {
         gameRef.current.scene.stop('HomeScene');
         gameRef.current.scene.start('MainScene');
@@ -106,6 +174,8 @@ function App() {
   };
 
   const handleRestart = () => {
+    playUIButton();
+    try { void (globalThis as any).__kr_bgm?.start?.(); } catch (_) { /* ignore */ }
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('MainScene');
       if (scene) {
@@ -126,6 +196,7 @@ function App() {
   };
   
   const handleNoorAnswer = (isCorrect: boolean) => {
+    playUIButton();
     if (gameRef.current) {
         const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
         if (scene) {
@@ -135,6 +206,7 @@ function App() {
   };
 
   const handleMessageDismiss = () => {
+    playUIButton();
     if (gameRef.current) {
         const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
         if (scene) {
@@ -144,6 +216,7 @@ function App() {
   };
 
   const handleStageResultsContinue = () => {
+    playUIButton();
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
       if (scene) {
@@ -153,14 +226,15 @@ function App() {
   };
 
   const handleSoundToggle = () => {
+    playUIButton();
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
-      scene?.playSfx?.('buttonConfirm');
       if (scene?.setSoundEnabled) scene.setSoundEnabled(!(gameState.soundEnabled !== false));
     }
   };
 
   const handlePuzzleAnswer = (index: number) => {
+    playUIButton();
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
       if (scene && typeof (scene as any).resolvePuzzleAnswer === 'function') {
@@ -170,14 +244,15 @@ function App() {
   };
 
   const handleMusicToggle = () => {
+    playUIButton();
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
-      scene?.playSfx?.('buttonConfirm');
       if (scene?.setMusicEnabled) scene.setMusicEnabled(!(gameState.musicEnabled !== false));
     }
   };
 
   const handlePauseClick = () => {
+    playUIButton();
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
       scene?.pauseGame?.();
@@ -185,6 +260,7 @@ function App() {
   };
 
   const handleResumeClick = () => {
+    playUIButton();
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
       scene?.resumeGame?.();
@@ -192,6 +268,7 @@ function App() {
   };
 
   const handleRestartStageClick = () => {
+    playUIButton();
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
       scene?.restartStage?.();
@@ -199,6 +276,7 @@ function App() {
   };
 
   const handleReturnToMenuClick = () => {
+    playUIButton();
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
       scene?.returnToMainMenu?.();

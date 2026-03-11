@@ -326,26 +326,46 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
                   </span>
                 </div>
               </div>
-              <div className="flex gap-1.5 md:gap-2 flex-row-reverse">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-6 h-6 md:w-7 md:h-7 transform transition-all duration-300 ${
-                      i < gameState.hearts ? 'scale-110' : 'scale-90 opacity-30 grayscale'
-                    }`}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      className={i < gameState.hearts ? 'text-red-500' : 'text-gray-500'}
-                      style={{
-                        filter: i < gameState.hearts ? 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.8))' : 'none'
-                      }}
+              <div className="flex items-center gap-1.5 md:gap-2 flex-row-reverse">
+                {gameState.hearts <= 3 ? (
+                  // Up to 3 hearts: show one icon per life (max 3)
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-6 h-6 md:w-7 md:h-7 transform transition-all duration-300 ${
+                        i < gameState.hearts ? 'scale-110' : 'scale-90 opacity-30 grayscale'
+                      }`}
                     >
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
-                  </div>
-                ))}
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        className={i < gameState.hearts ? 'text-red-500' : 'text-gray-500'}
+                        style={{
+                          filter: i < gameState.hearts ? 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.8))' : 'none'
+                        }}
+                      >
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                      </svg>
+                    </div>
+                  ))
+                ) : (
+                  // More than 3: single heart + count
+                  <>
+                    <div className="w-6 h-6 md:w-7 md:h-7 transform scale-110">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        className="text-red-500"
+                        style={{ filter: 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.8))' }}
+                      >
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                      </svg>
+                    </div>
+                    <span className="px-1.5 md:px-2 py-0.5 rounded-full bg-black/60 border border-white/15 text-sm md:text-base font-extrabold text-white">
+                      {gameState.hearts}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -457,12 +477,22 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
                    <span className="text-yellow-400 text-2xl md:text-3xl font-black">{gameState.stars}</span>
                 </div>
              </div>
-             <button 
-                onClick={onRestart}
-                className="w-full py-4 bg-yellow-400 hover:bg-yellow-300 text-[#1a1625] font-black text-xl rounded-2xl transition-all duration-200 transform hover:scale-[1.02] shadow-[0_0_20px_rgba(250,204,21,0.4)]"
-             >
-                العب مجدداً
-             </button>
+             <div className="flex flex-col gap-3 w-full">
+               <button 
+                  onClick={onRestart}
+                  className="w-full py-4 bg-yellow-400 hover:bg-yellow-300 text-[#1a1625] font-black text-xl rounded-2xl transition-all duration-200 transform hover:scale-[1.02] shadow-[0_0_20px_rgba(250,204,21,0.4)]"
+               >
+                  العب مجدداً
+               </button>
+               {onReturnToMenuClick && (
+                 <button
+                   onClick={onReturnToMenuClick}
+                   className="w-full py-3 bg-black/70 hover:bg-black text-white font-bold text-lg rounded-2xl border border-white/20 transition-all duration-200 transform hover:scale-[1.01]"
+                 >
+                   العودة إلى القائمة الرئيسية
+                 </button>
+               )}
+             </div>
           </div>
         </div>
       )}

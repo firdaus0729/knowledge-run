@@ -448,7 +448,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     if (onGround) {
         if (this.wasJumpingLastFrame) {
-            (this.scene as { playSfx?: (t: string) => void }).playSfx?.('land');
+            // Land: no sound per spec
             this.wasJumpingLastFrame = false;
         }
         this.isJumping = false;
@@ -524,7 +524,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.dustEmitter.setPosition(this.x, this.y + 35);
     this.dustEmitter.explode(8);
     this.scene.tweens.add({ targets: this, scaleX: 0.9, scaleY: 1.1, duration: 200, yoyo: true, ease: 'Sine.easeOut' });
-    (this.scene as { playSfx?: (t: string) => void }).playSfx?.('jump');
+    (this.scene as { playJump?: () => void }).playJump?.();
     const scene = this.scene as { onPlayerJump?: () => void };
     if (typeof scene.onPlayerJump === 'function') scene.onPlayerJump();
   }

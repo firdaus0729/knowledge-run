@@ -409,6 +409,7 @@ export class EventManager {
       this.carpetMissed = false; // Successfully caught
       
       this.scene.player.startFlying();
+      this.scene.audioManager?.startFlying();
       this.scene.setGameSpeed(1.5); 
       
       this.scene.spawnManager.obstacles.clear(true, true);
@@ -451,6 +452,7 @@ export class EventManager {
           ease: 'Power2.out',
           onComplete: () => {
               this.scene.player.stopFlying(); // Land
+              this.scene.audioManager?.stopFlying();
               this.scene.setGameSpeed(1.0);
               this.scene.environmentManager.finalizeCityTransition();
               // If the carpet rolled past the library entrance, trigger the entrance now so the event unfolds.
@@ -501,14 +503,15 @@ export class EventManager {
       this.currentGate = new MagicGate(this.scene, spawnX, groundY - 50);
       this.isEncounterActive = true;
       this.encounterType = 'GATE';
-      this.scene.playSfx('eventAppear');
   }
 
   private triggerGateArrival() {
       this.eventPhase = 'LEVEL_END_GATE';
       this.scene.setGameSpeed(0); 
       this.scene.player.play('run');
-      this.scene.player.stopStruggle(); 
+      this.scene.player.stopStruggle();
+      this.scene.audioManager?.pauseBGM();
+      this.scene.playMagicGateAfterSilence();
       this.activateLevelGate();
   }
 
@@ -594,7 +597,7 @@ export class EventManager {
 
       this.scene.cameras.main.once('camerafadeincomplete', () => {
           this.scene.recordCityStageStart();
-          this.scene.playMusic('city');
+          this.scene.audioManager?.resumeBGM();
           // Step 2: show stage title first (2.5 s), then Noor message
           this.scene.showStageTitle('المرحلة 2 – مدخل المدينة', 2500, () => {
               this.scene.showNoorMessage("مرحبًا بك في مدينة العلم…\nقد لا تكون الرحلة سهلة،\nلكنني سأكون معك في كل خطوة.", false, 'greet');
@@ -640,6 +643,7 @@ export class EventManager {
   private triggerLibraryArrival() {
       this.eventPhase = 'LIBRARY_ENTRY';
       this.scene.setGameSpeed(0);
+      this.scene.audioManager?.pauseBGM();
       const doorX = (this.libraryBuilding && this.libraryBuilding.active) ? this.libraryBuilding.x : this.scene.scale.width / 2;
       this.scene.player.isScripted = true;
       this.scene.player.stopStruggle();
@@ -679,6 +683,7 @@ export class EventManager {
               this.scene.cameras.main.once('camerafadeincomplete', () => {
                   this.scene.player.isScripted = false;
                   this.scene.setGameSpeed(0);
+                  this.scene.audioManager?.resumeBGM();
                   this.scene.showStageTitle('بيت الحكمة', 2500, () => {
                       this.scene.showNoorMessage('أهلاً بك في بيت الحكمة… هنا نهاية الرحلة وبداية العلم. 📚', false, 'greet');
                       // 3–5 short puzzles in sequence (placeholder; replace with your puzzles later)
@@ -827,7 +832,6 @@ export class EventManager {
   }
 
   private resumeRunFromShelter() {
-      this.scene.audioManager?.fadeBGMUp();
       this.scene.clearQuestionAndResumePhysics();
       this.scene.player.isScripted = false;
       this.scene.player.stopStruggle();
@@ -887,7 +891,6 @@ export class EventManager {
       this.isEncounterActive = true;
       this.encounterType = 'CHEST';
       this.isEncounterOpening = false;
-      this.scene.playSfx('eventAppear');
       const onPlatform = Math.random() > 0.4;
       if (onPlatform) {
           const platY = groundY - 100;
