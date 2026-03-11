@@ -11,7 +11,7 @@ import { GameState, AgeGroup } from './types';
 import { MainScene } from './game/scenes/MainScene';
 import { HomeScene } from './game/scenes/HomeScene';
 
-type GameStatus = 'home' | 'how_to_play' | 'age_select' | 'game_details' | 'playing';
+type GameStatus = 'home' | 'how_to_play' | 'age_select' | 'game_details' | 'loading_play' | 'playing';
 
 function App() {
   const gameRef = useRef<Phaser.Game | null>(null);
@@ -109,6 +109,15 @@ function App() {
     };
   }, []);
 
+  // When MainScene finishes heavy setup and shows Nur's first intro bubble,
+  // `noorMessage` becomes non-null. Keep the \"PREPARING YOUR ADVENTURE\"
+  // overlay visible until that happens so the player doesn't see a frozen frame.
+  useEffect(() => {
+    if (gameStatus === 'loading_play' && gameState.noorMessage) {
+      setGameStatus('playing');
+    }
+  }, [gameStatus, gameState.noorMessage]);
+
   const playUIButton = () => {
     try {
       if (!uiButtonAudioRef.current) {
@@ -161,16 +170,21 @@ function App() {
       setGameStatus('game_details');
   };
 
-  // 4. Game Details -> Playing
+  // 4. Game Details -> Playing (show loading while MainScene create() runs)
   const handleGameDetailsNext = () => {
       playUIButton();
       // Start background music when entering the actual game.
       try { void (globalThis as any).__kr_bgm?.start?.(); } catch (_) { /* ignore */ }
-      if (gameRef.current) {
-        gameRef.current.scene.stop('HomeScene');
-        gameRef.current.scene.start('MainScene');
-        setGameStatus('playing');
-      }
+      setGameStatus('loading_play');
+      // Yield so the "Preparing your adventure..." overlay can paint before blocking create().
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (gameRef.current) {
+            gameRef.current.scene.stop('HomeScene');
+            gameRef.current.scene.start('MainScene');
+          }
+        }, 0);
+      });
   };
 
   const handleRestart = () => {
@@ -319,6 +333,16 @@ function App() {
       {/* 4. Game Details */}
       {isLoaded && gameStatus === 'game_details' && (
           <GameDetailsUI onNext={handleGameDetailsNext} />
+      )}
+
+      {/* 4b. Loading before play (MainScene create / Nur intro prep) */}
+      {isLoaded && gameStatus === 'loading_play' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#1a1625] z-50">
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mb-4" />
+            <div className="text-amber-400 font-bold text-xl tracking-widest">PREPARING YOUR ADVENTURE</div>
+          </div>
+        </div>
       )}
       
       {/* 5. Gameplay UI Overlay */}

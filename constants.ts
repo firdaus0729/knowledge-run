@@ -23,10 +23,10 @@ export function getPlayerSpawnY(screenHeight: number): number {
 /** Player spawn/reset X – accurate on both PC and mobile. */
 export function getPlayerStartX(viewWidth: number): number {
   const MOBILE_BREAKPOINT = 600;
-  const DESKTOP_X = 180;
+  const DESKTOP_X = 200;
   if (viewWidth >= MOBILE_BREAKPOINT) return DESKTOP_X;
-  const pct = 0.17;
-  const min = 110;
+  const pct = 0.19;
+  const min = 120;
   return Math.max(min, Math.round(viewWidth * pct));
 }
 

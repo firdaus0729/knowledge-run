@@ -1,6 +1,16 @@
 import Phaser from 'phaser';
 import { Background } from '../objects/Background';
 import { GAME_WIDTH, GAME_HEIGHT } from '../../constants';
+import { Player } from '../objects/Player';
+import { Obstacle } from '../objects/Obstacle';
+import { Star } from '../objects/Star';
+import { Heart } from '../objects/Heart';
+import { ShieldItem } from '../objects/ShieldItem';
+import { RewardBox } from '../objects/RewardBox';
+import { MerchantCart } from '../objects/MerchantCart';
+import { StackOfRugs } from '../objects/StackOfRugs';
+import { StreetCat } from '../objects/StreetCat';
+import { MagicCarpet } from '../objects/MagicCarpet';
 
 export class HomeScene extends Phaser.Scene {
   declare cameras: Phaser.Cameras.Scene2D.CameraManager;
@@ -28,7 +38,20 @@ export class HomeScene extends Phaser.Scene {
     // 3. Create rising "Knowledge" particles (Sparkles/Runes)
     this.createMagicParticles();
 
-    // 4. Subtle camera float
+    // 4. Warm up key gameplay textures while the player is on the home screen,
+    //    so that MainScene's intro has less work to do.
+    Player.generateTexture(this);
+    Obstacle.generateTextures(this);
+    Star.generateTexture(this);
+    Heart.generateTexture(this);
+    ShieldItem.generateTexture(this);
+    RewardBox.generateTexture(this);
+    MerchantCart.generateTexture(this);
+    StackOfRugs.generateTexture(this);
+    StreetCat.generateTexture(this);
+    MagicCarpet.init(this);
+
+    // 5. Subtle camera float
     this.cameras.main.setZoom(1.0);
   }
 
