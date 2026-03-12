@@ -18,6 +18,7 @@ function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const uiButtonAudioRef = useRef<HTMLAudioElement | null>(null);
   const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
+  const stage2BgmAudioRef = useRef<HTMLAudioElement | null>(null);
   const menuBgmAudioRef = useRef<HTMLAudioElement | null>(null);
   
   // Game Flow: intro_gate -> home -> how_to_play -> age_select -> game_details -> playing
@@ -41,7 +42,9 @@ function App() {
       const d = data as Record<string, unknown>;
       if (d.returnToMenu) {
         setGameStatus('home');
-        // When returning to the main menu after gameplay, resume the menu music.
+        try {
+          (globalThis as any).__kr_bgm?.stop?.();
+        } catch (_) { /* ignore */ }
         try {
           const musicDisabled =
             typeof localStorage !== 'undefined' && localStorage.getItem('musicEnabled') === '0';
@@ -51,6 +54,9 @@ function App() {
         } catch {
           // ignore
         }
+      }
+      if (d.currentStage !== undefined) {
+        try { ((globalThis as any).__kr_bgm as any).currentStage = d.currentStage as number; } catch (_) { /* ignore */ }
       }
       setGameState(prev => ({
         ...prev,
@@ -139,7 +145,7 @@ function App() {
     };
   }, []);
 
-  // Global BGM controller (HTMLAudio) so it can start on first user gesture.
+  // Global BGM controller (HTMLAudio): Stage 1 = background-music.mp3, Stage 2 = stage2BackgroundMusic.mp3.
   useEffect(() => {
     try {
       if (!bgmAudioRef.current) {
@@ -149,23 +155,38 @@ function App() {
         a.volume = 0.28;
         bgmAudioRef.current = a;
       }
-      (globalThis as any).__kr_bgm = {
+      if (!stage2BgmAudioRef.current) {
+        const a2 = new Audio('/audio/stage2BackgroundMusic.mp3');
+        a2.preload = 'auto';
+        a2.loop = true;
+        a2.volume = 0.28;
+        stage2BgmAudioRef.current = a2;
+      }
+      const api = (globalThis as any).__kr_bgm = {
+        currentStage: 1 as number,
         start: async () => {
-          const a = bgmAudioRef.current;
-          if (!a) return;
-          try { await a.play(); } catch (_) { /* autoplay blocked */ }
+          const stage = (api.currentStage ?? 1) as number;
+          bgmAudioRef.current?.pause();
+          stage2BgmAudioRef.current?.pause();
+          try { if (bgmAudioRef.current) bgmAudioRef.current.currentTime = 0; } catch (_) { /* ignore */ }
+          try { if (stage2BgmAudioRef.current) stage2BgmAudioRef.current.currentTime = 0; } catch (_) { /* ignore */ }
+          const a = stage === 2 ? stage2BgmAudioRef.current : bgmAudioRef.current;
+          if (a) try { await a.play(); } catch (_) { /* autoplay blocked */ }
         },
-        pause: () => { bgmAudioRef.current?.pause(); },
+        pause: () => {
+          bgmAudioRef.current?.pause();
+          stage2BgmAudioRef.current?.pause();
+        },
         resume: async () => {
-          const a = bgmAudioRef.current;
-          if (!a) return;
-          try { await a.play(); } catch (_) { /* autoplay blocked */ }
+          const stage = (api.currentStage ?? 1) as number;
+          const a = stage === 2 ? stage2BgmAudioRef.current : bgmAudioRef.current;
+          if (a) try { await a.play(); } catch (_) { /* autoplay blocked */ }
         },
         stop: () => {
-          const a = bgmAudioRef.current;
-          if (!a) return;
-          a.pause();
-          try { a.currentTime = 0; } catch (_) { /* ignore */ }
+          bgmAudioRef.current?.pause();
+          stage2BgmAudioRef.current?.pause();
+          try { if (bgmAudioRef.current) bgmAudioRef.current.currentTime = 0; } catch (_) { /* ignore */ }
+          try { if (stage2BgmAudioRef.current) stage2BgmAudioRef.current.currentTime = 0; } catch (_) { /* ignore */ }
         }
       };
     } catch (_) {
@@ -210,6 +231,21 @@ function App() {
       setGameStatus('playing');
     }
   }, [gameStatus, gameState.noorMessage]);
+
+  // Switch BGM track when stage changes during gameplay (Stage 1 vs Stage 2).
+  useEffect(() => {
+    if (gameStatus !== 'playing') return;
+    const musicDisabled = typeof localStorage !== 'undefined' && localStorage.getItem('musicEnabled') === '0';
+    if (musicDisabled) return;
+    const stage = gameState.currentStage ?? 1;
+    if (stage === 2) {
+      bgmAudioRef.current?.pause();
+      try { if (stage2BgmAudioRef.current) void stage2BgmAudioRef.current.play(); } catch (_) { /* ignore */ }
+    } else {
+      stage2BgmAudioRef.current?.pause();
+      try { if (bgmAudioRef.current) void bgmAudioRef.current.play(); } catch (_) { /* ignore */ }
+    }
+  }, [gameStatus, gameState.currentStage]);
 
   const playUIButton = () => {
     try {
