@@ -42,8 +42,6 @@ export class SpawnManager {
   private spawnQueue: { type: string, delay: number, yOffset?: number }[] = [];
   /** Ensure elevated bridge with reward box appears at least once in city. */
   private hasSpawnedElevatedBridgeReward: boolean = false;
-  /** Ensure elevated bridge with carpet door appears at least once in city. */
-  private hasSpawnedElevatedBridgeCarpet: boolean = false;
 
   constructor(scene: MainScene) {
     this.scene = scene;
@@ -294,20 +292,20 @@ export class SpawnManager {
               patterns = [
                   'BOOK_PILE', 'FLOATING_BOOKS_PATH', 'LIBRARY_SCROLLS', 'BOOK_JUMP', 'FREE_STARS', 'RISING_PILLAR'
               ];
-          } else if (zone === 'DESERT' || zone === 'TRANSITION') {
+        } else if (zone === 'DESERT' || zone === 'TRANSITION') {
               patterns = [
                   'SINGLE_ROCK', 'SINGLE_CACTUS', 'SPIKE_TRAP', 'FREE_STARS', 'RISING_PILLAR',
                   'SNAKE_SOLO', 'FALCON', 'PLATFORM_SIMPLE_HOP', 'CRUMBLING_ARCH',
                   'SCORPION_HUNT', 'VIPER_NEST', 'ARFAJ_PATCH'
               ];
           } else {
-              // CITY PATTERNS
+            // CITY PATTERNS
               if (currentStage === 2) {
                   // STAGE 2: Organized, Verticality, "Flow" + new mechanics. Dual-path is rare (one entry only).
                   patterns = [
                       'MERCHANT_CART', 'STACK_OF_RUGS', 'ROOFTOP_START',
                       'PLATFORM_SIMPLE_HOP', 'FREE_STARS', 'STREET_CAT',
-                      'PLATFORM_MINI_STAIRS', 'ELEVATED_BRIDGE_REWARD', 'ELEVATED_BRIDGE_CARPET',
+                    'PLATFORM_MINI_STAIRS', 'ELEVATED_BRIDGE_REWARD',
                       'MOVING_PLATFORM_VERTICAL', 'MOVING_PLATFORM_HORIZONTAL',
                       'RISING_PILLAR'
                   ];
@@ -317,7 +315,7 @@ export class SpawnManager {
                      'SINGLE_ROCK', 'MERCHANT_CART', 'STACK_OF_RUGS', 'ROOFTOP_START', 'SPIKE_TRAP',
                      'PLATFORM_SIMPLE_HOP', 'PLATFORM_MINI_STAIRS', 'FREE_STARS',
                      'SPLIT_PATH_CAVE', 'SHOP_DROP_BOUNCE', 'PLATFORM_BRIDGE',
-                     'ELEVATED_BRIDGE_REWARD', 'ELEVATED_BRIDGE_CARPET',
+                   'ELEVATED_BRIDGE_REWARD',
                      'MOVING_PLATFORM_VERTICAL', 'MOVING_PLATFORM_HORIZONTAL',
                      'RISING_PILLAR',
                      'SCORPION_HUNT', 'ARFAJ_PATCH', 'STREET_CAT'
@@ -336,15 +334,12 @@ export class SpawnManager {
           patterns = patterns.filter(p => p !== 'CRUMBLING_ARCH' && p !== 'ROOFTOP_START');
       }
 
-      // Guarantee both elevated bridge types at least once in city: first reward, then carpet
+      // Guarantee elevated bridge with reward box at least once in city
       let pattern: string;
       if (zone === 'CITY' && currentStage === 2 && !isShopHere && distInCity >= 50) {
           if (!this.hasSpawnedElevatedBridgeReward) {
               pattern = 'ELEVATED_BRIDGE_REWARD';
               this.hasSpawnedElevatedBridgeReward = true;
-          } else if (distInCity >= 130 && !this.hasSpawnedElevatedBridgeCarpet) {
-              pattern = 'ELEVATED_BRIDGE_CARPET';
-              this.hasSpawnedElevatedBridgeCarpet = true;
           } else {
               pattern = Phaser.Utils.Array.GetRandom(patterns);
           }
@@ -706,7 +701,6 @@ export class SpawnManager {
       this.spawnQueue = [];
       this.lastSpawnType = 'NONE';
       this.hasSpawnedElevatedBridgeReward = false;
-      this.hasSpawnedElevatedBridgeCarpet = false;
 
       this.stars.clear(true, true);
       this.heartsGroup.clear(true, true);

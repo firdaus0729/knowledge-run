@@ -190,8 +190,9 @@ export class EventManager {
               this.scene.environmentManager.transitionLibraryToCity();
           }
 
-          // End flight after duration (longer for library so player enjoys flying more)
-          const maxDuration = this.carpetMode === 'LIBRARY' ? 26000 : 9000;
+          // End flight after duration (longer for library so player enjoys flying more;
+          // medium-length, calmer flight above the city for special events like the treasure box).
+          const maxDuration = this.carpetMode === 'LIBRARY' ? 26000 : 14000;
           if (this.carpetTimer > maxDuration) {
               this.endCarpetRide();
           }
@@ -410,7 +411,9 @@ export class EventManager {
       
       this.scene.player.startFlying();
       this.scene.audioManager?.startFlying();
-      this.scene.setGameSpeed(1.5); 
+      // Library transition flight is a bit faster; city-side special event is calmer.
+      const speed = this.carpetMode === 'LIBRARY' ? 1.5 : 1.2;
+      this.scene.setGameSpeed(speed);
       
       this.scene.spawnManager.obstacles.clear(true, true);
       

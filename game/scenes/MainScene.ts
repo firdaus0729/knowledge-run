@@ -944,6 +944,13 @@ export class MainScene extends Phaser.Scene {
                   if (isCorrect) {
                       this.addScore(15);
                       this.showFloatingText(this.player.x, this.player.y - 80, '+١٥ نجمة', '#ffd700');
+                      // Special magic carpet event: ride above the city after opening the treasure box.
+                      this.eventManager.triggerCarpetRide();
+                      this.physics.resume();
+                      this.player.anims.resume();
+                      this.speedModifier = 1.0;
+                      this.syncUI();
+                      return;
                   }
                   break;
           }
