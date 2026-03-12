@@ -272,7 +272,7 @@ export class MainScene extends Phaser.Scene {
       this.generateCarpetGateTexture();
     });
 
-    this.time.delayedCall(2000, () => {
+    this.time.delayedCall(4000, () => {
       this.nurController.hide();
       this.currentNoorMessage = null;
       this.syncUI();
