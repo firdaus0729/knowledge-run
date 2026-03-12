@@ -140,7 +140,7 @@ export class MainScene extends Phaser.Scene {
     this.collisionManager = new CollisionManager(this);
     this.nurController = new NurController(this);
 
-    // 2. Generate Assets
+    // 2. Generate Assets (core gameplay textures – already prewarmed in HomeScene, so this is cheap)
     Player.generateTexture(this);
     Obstacle.generateTextures(this);
     Star.generateTexture(this);
@@ -150,27 +150,21 @@ export class MainScene extends Phaser.Scene {
     MerchantCart.generateTexture(this);
     StackOfRugs.generateTexture(this);
     StreetCat.generateTexture(this); // Gen Cat
-    MagicCarpet.init(this);
-    this.generateCarpetGateTexture();
 
+    // 3. Core environment & spawners: only what is needed for the first seconds of running.
     this.environmentManager.create();
     this.spawnManager.create();
 
-    // 3. Create Player
+    // 4. Create Player
     const height = Math.max(10, Math.ceil(this.scale.height));
     this.player = new Player(this, getPlayerStartX(this.scale.width), getPlayerSpawnY(height));
     this.cameras.main.setZoom(GAMEPLAY_CAMERA_ZOOM);
     this.player.setVariableJump(false);
 
-    // 4. VFX Overlays
-    this.createSandstormOverlay();
-    this.createSandstormEmitter();
-    this.createCinematicVignette();
-
-    // 5. Setup Collisions
+    // 5. Setup Collisions (needed for safe running after intro)
     this.collisionManager.setupCollisions();
 
-    // 6. Audio (Step 5 – preferences from localStorage)
+    // 6. Audio (preferences from localStorage)
     const soundOn = typeof localStorage !== 'undefined' && localStorage.getItem('soundEnabled') !== '0';
     const musicOn = typeof localStorage !== 'undefined' && localStorage.getItem('musicEnabled') !== '0';
     this.audioManager = new AudioManager(this, { soundEnabled: soundOn, musicEnabled: musicOn });
@@ -266,7 +260,19 @@ export class MainScene extends Phaser.Scene {
     });
     this.syncUI();
 
-    this.time.delayedCall(5000, () => {
+    // While Nur is greeting the player (5 seconds), finish heavy one-time setup
+    // that is not required for the very first frame: VFX overlays, distant
+    // event assets, etc. This keeps the second \"Start the adventure\" click
+    // feeling responsive while still preparing the full experience.
+    this.time.delayedCall(0, () => {
+      this.createSandstormOverlay();
+      this.createSandstormEmitter();
+      this.createCinematicVignette();
+      MagicCarpet.init(this);
+      this.generateCarpetGateTexture();
+    });
+
+    this.time.delayedCall(2000, () => {
       this.nurController.hide();
       this.currentNoorMessage = null;
       this.syncUI();
