@@ -111,6 +111,7 @@ export class MainScene extends Phaser.Scene {
       // Audio – from public/audio (no overlapping long tracks)
       this.load.audio('sfx_button', '/audio/button.wav');
       this.load.audio('sfx_star', '/audio/star.wav');
+      this.load.audio('sfx_heart', '/audio/heart.wav');
       this.load.audio('sfx_jump', '/audio/jump.wav');
       this.load.audio('sfx_box', '/audio/box.wav');
       this.load.audio('sfx_damage', '/audio/damage.wav');
@@ -190,6 +191,11 @@ export class MainScene extends Phaser.Scene {
   /** Audio: star collected. */
   public playStar(): void {
     this.audioManager?.playStar();
+  }
+
+  /** Audio: extra life collected. */
+  public playHeart(): void {
+    this.audioManager?.playHeart();
   }
 
   /** Audio: jump. */
@@ -757,6 +763,8 @@ export class MainScene extends Phaser.Scene {
       if (this.nurController) {
           this.nurController.show(nurState, { position: 'top' });
       }
+      // Nur voice / sound effect matched to her current expression.
+      this.audioManager?.playNurVoice(nurState);
       if (isSoftPause) {
           this.isSoftPaused = true;
           this.physics.world.timeScale = 0.15; // Slow down so player can read the jump hint (first time only)

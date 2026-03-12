@@ -121,7 +121,7 @@ export class CollisionManager {
   private handleCollectHeart(player: any, heart: any) {
       (heart as Heart).collect();
       if (this.scene.addHeart()) {
-          this.scene.playStar();
+          this.scene.playHeart();
           this.scene.showFloatingText(heart.x, heart.y, `قلب +`, '#ff4d4d');
       }
   }
@@ -129,7 +129,7 @@ export class CollisionManager {
   private handleCollectShield(player: any, shield: any) {
       (shield as ShieldItem).collect();
       this.scene.player.activateShield(10000); 
-      this.scene.playStar();
+      this.scene.playHeart();
       this.scene.showFloatingText(shield.x, shield.y, `درع حماية!`, '#00d2ff');
   }
 

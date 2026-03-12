@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { MainScene } from '../scenes/MainScene';
+import type { NurState } from '../objects/NurController';
 
 const STORAGE_SOUND = 'soundEnabled';
 const STORAGE_MUSIC = 'musicEnabled';
@@ -96,6 +97,11 @@ export class AudioManager {
     this.playOneShot('sfx_star');
   }
 
+  /** Collected an extra heart (life). */
+  playHeart(): void {
+    this.playOneShot('sfx_heart');
+  }
+
   /** Player jumped. */
   playJump(): void {
     this.playOneShot('sfx_jump');
@@ -119,6 +125,27 @@ export class AudioManager {
   /** Stage completed (desert or library). */
   playStageSuccess(): void {
     this.playOneShot('sfx_stageSuccess');
+  }
+
+  /** Nur's voice/sound cue depending on her current expression. */
+  playNurVoice(state: NurState = 'greet'): void {
+    if (!this._soundEnabled) return;
+    switch (state) {
+      case 'encourage':
+      case 'success':
+        this.playOneShot('sfx_stageSuccess');
+        break;
+      case 'warning':
+        this.playOneShot('sfx_damage');
+        break;
+      case 'think':
+        this.playOneShot('sfx_star');
+        break;
+      case 'greet':
+      default:
+        this.playOneShot('sfx_star');
+        break;
+    }
   }
 
   /** Start sandstorm: stop other long audio, play sandstorm.wav in loop until stopSandstorm(). */
