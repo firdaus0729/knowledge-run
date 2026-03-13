@@ -3,7 +3,7 @@ export const GAME_WIDTH = window.innerWidth > 0 ? window.innerWidth : 800;
 export const GAME_HEIGHT = window.innerHeight > 0 ? window.innerHeight : 600;
 
 // Camera tuning – zoom in slightly so the road and obstacles feel larger.
-export const GAMEPLAY_CAMERA_ZOOM = 1.18;
+export const GAMEPLAY_CAMERA_ZOOM = 1.10;
 
 /** Ground: run surface is this many pixels from the bottom (raised = larger value). */
 export const RUN_SURFACE_FROM_BOTTOM = 182;
@@ -23,10 +23,10 @@ export function getPlayerSpawnY(screenHeight: number): number {
 /** Player spawn/reset X – accurate on both PC and mobile. */
 export function getPlayerStartX(viewWidth: number): number {
   const MOBILE_BREAKPOINT = 600;
-  const DESKTOP_X = 200;
+  const DESKTOP_X = 135;
   if (viewWidth >= MOBILE_BREAKPOINT) return DESKTOP_X;
-  const pct = 0.19;
-  const min = 120;
+  const pct = 0.14;
+  const min = 82;
   return Math.max(min, Math.round(viewWidth * pct));
 }
 

@@ -75,6 +75,15 @@ export class EventManager {
   private nextCarpetSpawnPos: number = 0;
   /** True once Stage 2 has been ended (library results shown) so we don't trigger again. */
   private stage2EndTriggered: boolean = false;
+
+  /** City road carpet: visible on the path; when player reaches it, Nur invites then ride. */
+  private hasSpawnedRoadCarpet: boolean = false;
+  private lastRoadCarpetAt: number = 0;
+  private isRoadCarpet: boolean = false;
+  private roadCarpetIntroPending: boolean = false;
+  private readonly ROAD_CARPET_SPAWN_DIST_M = 100;
+  private readonly ROAD_CARPET_MIN_INTERVAL_M = 180;
+  private readonly ROAD_CARPET_EXTRA_CHANCE = 0.35;
   
   // Tutorial Flags for Flow
   private hasTriggeredRooftopTutorial: boolean = false;
@@ -239,6 +248,7 @@ export class EventManager {
               this.checkLevelEnd();
               this.checkStage2End();
               this.checkLibraryEvent();
+              this.checkCityRoadCarpet();
           }
           if (this.eventPhase === 'NONE' || this.eventPhase === 'INTRO_RUN') {
               this.checkChestThreshold();
@@ -290,6 +300,12 @@ export class EventManager {
 
   private handleCarpetMiss() {
       // Called when carpet destroys itself without being collected
+      if (this.isRoadCarpet) {
+          this.isRoadCarpet = false;
+          this.encounterType = 'NONE';
+          this.scene.showNoorMessage("لقد فاتك البساط هذه المرة. لا بأس! 🧞‍♂️", false, 'greet');
+          return;
+      }
       this.carpetMissed = true;
       this.nextCarpetSpawnPos = this.scene.getRunDistance() + this.CARPET_SPAWN_DIST_M;
       this.encounterType = 'NONE';
@@ -303,7 +319,58 @@ export class EventManager {
       this.currentCarpet = new MagicCarpet(this.scene, spawnX, groundY);
       this.encounterType = 'CARPET';
       this.carpetMode = 'LIBRARY';
+      this.isRoadCarpet = false;
       this.scene.showNoorMessage("انظر! بساط الريح السحري! اقفز عليه! 🧞‍♂️", false, 'greet');
+  }
+
+  /** Spawn the magic carpet visibly on the city road; when player reaches it, Nur invites then ride. At least once guaranteed; then additional spawns with probability. */
+  private checkCityRoadCarpet() {
+      if (this.scene.environmentManager.getZone() !== 'CITY') return;
+      if (this.currentCarpet || this.currentCarpetGate) return;
+      const cityStart = this.scene.getCityStartDistance();
+      if (cityStart < 0) return;
+      const runDistance = this.scene.getRunDistance();
+      const distInCity = runDistance - cityStart;
+
+      const doSpawn = () => {
+          this.lastRoadCarpetAt = runDistance;
+          const spawnX = this.scene.scale.width + 280;
+          const groundY = getGroundY(this.scene.scale.height);
+          this.currentCarpet = new MagicCarpet(this.scene, spawnX, groundY);
+          this.currentCarpet.setScale(1.2);
+          this.currentCarpet.setDepth(22);
+          this.encounterType = 'CARPET';
+          this.carpetMode = 'CITY_SIDE';
+          this.isRoadCarpet = true;
+          this.scene.showNoorMessage("انظر! بساط سحري على الطريق… اقترب منه! 🧞‍♂️", false, 'greet');
+      };
+
+      if (!this.hasSpawnedRoadCarpet && distInCity >= this.ROAD_CARPET_SPAWN_DIST_M) {
+          this.hasSpawnedRoadCarpet = true;
+          doSpawn();
+          return;
+      }
+      if (this.hasSpawnedRoadCarpet && runDistance - this.lastRoadCarpetAt >= this.ROAD_CARPET_MIN_INTERVAL_M && Math.random() < this.ROAD_CARPET_EXTRA_CHANCE) {
+          doSpawn();
+      }
+  }
+
+  /** True when the current carpet is the road carpet (show Nur intro on reach, then ride). */
+  public isRoadCarpetActive(): boolean {
+      return this.currentCarpet != null && this.isRoadCarpet && !this.roadCarpetIntroPending;
+  }
+
+  /** Called when player reaches the road carpet: pause, show Nur "Let's try the magic carpet", then start ride. */
+  public onRoadCarpetReached(): void {
+      if (this.roadCarpetIntroPending || !this.currentCarpet || !this.isRoadCarpet) return;
+      this.roadCarpetIntroPending = true;
+      this.scene.setGameSpeed(0);
+      this.scene.showNoorMessage("لنجرب البساط السحري! ✨", false, 'greet');
+      this.scene.audioManager?.playNurVoice('greet');
+      this.scene.time.delayedCall(2500, () => {
+          this.roadCarpetIntroPending = false;
+          this.triggerCarpetRide();
+      });
   }
 
   /** Spawn the gate that blocks the magic carpet path; carpet spawns only after puzzle is solved. */
@@ -331,12 +398,13 @@ export class EventManager {
       this.currentCarpet = new MagicCarpet(this.scene, spawnX, groundY);
       this.encounterType = 'CARPET';
       this.carpetMode = 'CITY_SIDE';
+      this.isRoadCarpet = false;
       this.carpetGatePending = false;
   }
 
-  /** True when the carpet path is the city dual-path one (gate or carpet; puzzle required before ride). */
+  /** True when the carpet path is the city dual-path one (gate or carpet; puzzle required before ride). Road carpet has no gate. */
   public getCarpetGateRequired(): boolean {
-      return this.carpetMode === 'CITY_SIDE' && (this.currentCarpet != null || this.currentCarpetGate != null);
+      return this.carpetMode === 'CITY_SIDE' && !this.isRoadCarpet && (this.currentCarpet != null || this.currentCarpetGate != null);
   }
 
   /** Gate object at the carpet path (overlap triggers puzzle). */
@@ -402,7 +470,8 @@ export class EventManager {
 
   public triggerCarpetRide() {
       if (this.eventPhase === 'CARPET_RIDE') return;
-      
+      this.isRoadCarpet = false;
+
       this.eventPhase = 'CARPET_RIDE';
       this.carpetTimer = 0;
       this.hasTransitionedToCity = false;
@@ -944,6 +1013,11 @@ export class EventManager {
       this.carpetMissed = false;
       this.nextCarpetSpawnPos = 0;
       this.carpetTimer = 0;
+      this.hasSpawnedRoadCarpet = false;
+      this.lastRoadCarpetAt = 0;
+      this.isRoadCarpet = false;
+      this.roadCarpetIntroPending = false;
+      if (this.currentCarpetGate) { this.currentCarpetGate.destroy(); this.currentCarpetGate = null; }
       
       if (this.refugeTent) { this.refugeTent.destroy(); this.refugeTent = null; }
       if (this.currentGate) { this.currentGate.destroy(); this.currentGate = null; }

@@ -255,18 +255,11 @@ function App() {
         a.volume = 0.6;
         uiButtonAudioRef.current = a;
       }
-      // Clone so rapid clicks don't cut each other off.
-      const a = uiButtonAudioRef.current.cloneNode(true) as HTMLAudioElement;
-      a.volume = uiButtonAudioRef.current.volume;
+      const a = uiButtonAudioRef.current;
+      a.currentTime = 0;
       void a.play();
     } catch (_) {
       // ignore (browser policy / missing audio device)
-    }
-
-    // Also trigger Phaser-side (when MainScene exists).
-    if (gameRef.current) {
-      const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
-      scene?.playButton?.();
     }
   };
 
@@ -467,6 +460,18 @@ function App() {
       scene?.returnToMainMenu?.();
     }
   };
+
+  // Auto-pause when the user leaves the game (switch tab, minimize, another app). Game does not run in background.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden || !gameRef.current) return;
+      if (!gameRef.current.scene.isActive('MainScene')) return;
+      const scene = gameRef.current.scene.getScene('MainScene') as MainScene | undefined;
+      if (scene?.pauseGame && typeof scene.pauseGame === 'function') scene.pauseGame();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -6,7 +6,6 @@ import { Star } from '../objects/Star';
 import { Heart } from '../objects/Heart';
 import { ShieldItem } from '../objects/ShieldItem';
 import { RewardBox } from '../objects/RewardBox';
-import { CityCarpetBox } from '../objects/CityCarpetBox';
 import { MarketAwning } from '../objects/MarketAwning';
 import { MagicCarpet } from '../objects/MagicCarpet';
 
@@ -49,7 +48,6 @@ export class CollisionManager {
     this.scene.physics.add.overlap(player, spawn.heartsGroup, this.handleCollectHeart, undefined, this);
     this.scene.physics.add.overlap(player, spawn.shieldsGroup, this.handleCollectShield, undefined, this);
     this.scene.physics.add.overlap(player, spawn.rewardBoxesGroup, this.handleCollectRewardBox, undefined, this);
-    this.scene.physics.add.overlap(player, spawn.cityCarpetBoxesGroup, this.handleCollectCityCarpetBox, undefined, this);
 
     // Magic Carpet Pickup (New)
     // We check overlap every frame in update if active, but collision manager is cleaner
@@ -76,7 +74,9 @@ export class CollisionManager {
       const carpet = evt.currentCarpet;
       if (carpet && carpet.active && !player.isFlying) {
           this.scene.physics.overlap(player, carpet, () => {
-              if (evt.getCarpetGateRequired()) {
+              if (evt.isRoadCarpetActive()) {
+                  evt.onRoadCarpetReached();
+              } else if (evt.getCarpetGateRequired()) {
                   evt.onCarpetOverlap();
               } else {
                   evt.triggerCarpetRide();
@@ -137,10 +137,6 @@ export class CollisionManager {
 
   private handleCollectRewardBox(player: any, box: any) {
       (box as RewardBox).collect();
-  }
-
-  private handleCollectCityCarpetBox(player: any, box: any) {
-      (box as CityCarpetBox).collect();
   }
 
   private handleHitObstacle(player: any, obstacle: any) {

@@ -956,20 +956,6 @@ export class MainScene extends Phaser.Scene {
                       this.showFloatingText(this.player.x, this.player.y - 80, '+١٥ نجمة', '#ffd700');
                   }
                   break;
-              case 'CITY_CARPET_BOX':
-                  if (isCorrect) {
-                      this.addScore(10);
-                      this.showFloatingText(this.player.x, this.player.y - 80, '+١٠ نجمة', '#ffd700');
-                      this.eventManager.triggerCarpetRide();
-                      this.showNoorMessage('أحسنت! استعد للطيران! 🧞‍♂️', false, 'success');
-                  } else {
-                      this.showNoorMessage('حاول مرة أخرى.', false, 'warning');
-                  }
-                  this.physics.resume();
-                  this.player.anims.resume();
-                  this.speedModifier = 1.0;
-                  this.syncUI();
-                  return;
           }
       }
 
