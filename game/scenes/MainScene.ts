@@ -412,6 +412,10 @@ export class MainScene extends Phaser.Scene {
       const factor = startFactor + (endFactor - startFactor) * t;
       currentSpeed *= factor;
     }
+    // City section: slightly slower run (0.8x) for better readability and control
+    if (this.currentStage >= 2 && this.environmentManager.getZone() === 'CITY') {
+      currentSpeed *= 0.8;
+    }
     const frameMove = (currentSpeed * dt); 
 
     if (currentSpeed > 0) {
@@ -950,15 +954,22 @@ export class MainScene extends Phaser.Scene {
                   if (isCorrect) {
                       this.addScore(15);
                       this.showFloatingText(this.player.x, this.player.y - 80, '+١٥ نجمة', '#ffd700');
-                      // Special magic carpet event: ride above the city after opening the treasure box.
-                      this.eventManager.triggerCarpetRide();
-                      this.physics.resume();
-                      this.player.anims.resume();
-                      this.speedModifier = 1.0;
-                      this.syncUI();
-                      return;
                   }
                   break;
+              case 'CITY_CARPET_BOX':
+                  if (isCorrect) {
+                      this.addScore(10);
+                      this.showFloatingText(this.player.x, this.player.y - 80, '+١٠ نجمة', '#ffd700');
+                      this.eventManager.triggerCarpetRide();
+                      this.showNoorMessage('أحسنت! استعد للطيران! 🧞‍♂️', false, 'success');
+                  } else {
+                      this.showNoorMessage('حاول مرة أخرى.', false, 'warning');
+                  }
+                  this.physics.resume();
+                  this.player.anims.resume();
+                  this.speedModifier = 1.0;
+                  this.syncUI();
+                  return;
           }
       }
 

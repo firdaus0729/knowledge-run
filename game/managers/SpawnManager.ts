@@ -5,6 +5,7 @@ import { Star } from '../objects/Star';
 import { Heart } from '../objects/Heart';
 import { ShieldItem } from '../objects/ShieldItem';
 import { RewardBox } from '../objects/RewardBox';
+import { CityCarpetBox } from '../objects/CityCarpetBox';
 import { Obstacle, type ObstacleType } from '../objects/Obstacle';
 import { MerchantCart } from '../objects/MerchantCart';
 import { StackOfRugs } from '../objects/StackOfRugs';
@@ -20,6 +21,7 @@ export class SpawnManager {
   public heartsGroup!: Phaser.GameObjects.Group;
   public shieldsGroup!: Phaser.GameObjects.Group;
   public rewardBoxesGroup!: Phaser.GameObjects.Group;
+  public cityCarpetBoxesGroup!: Phaser.GameObjects.Group;
   public obstacles!: Phaser.GameObjects.Group;
   public merchantCarts!: Phaser.GameObjects.Group;
   public rugStacks!: Phaser.GameObjects.Group;
@@ -42,6 +44,9 @@ export class SpawnManager {
   private spawnQueue: { type: string, delay: number, yOffset?: number }[] = [];
   /** Ensure elevated bridge with reward box appears at least once in city. */
   private hasSpawnedElevatedBridgeReward: boolean = false;
+  /** Last runDistance (m) at which a city-course carpet box was spawned. */
+  private lastCityCarpetBoxAt: number = 0;
+  private readonly CITY_CARPET_BOX_INTERVAL_M = 180;
 
   constructor(scene: MainScene) {
     this.scene = scene;
@@ -52,6 +57,7 @@ export class SpawnManager {
     this.heartsGroup = this.scene.add.group({ classType: Heart, runChildUpdate: false });
     this.shieldsGroup = this.scene.add.group({ classType: ShieldItem, runChildUpdate: false });
     this.rewardBoxesGroup = this.scene.add.group({ classType: RewardBox, runChildUpdate: false });
+    this.cityCarpetBoxesGroup = this.scene.add.group({ classType: CityCarpetBox, runChildUpdate: false });
     this.obstacles = this.scene.add.group({ classType: Obstacle, runChildUpdate: false });
     this.merchantCarts = this.scene.add.group({ classType: MerchantCart, runChildUpdate: false });
     this.rugStacks = this.scene.add.group({ classType: StackOfRugs, runChildUpdate: false });
@@ -68,6 +74,7 @@ export class SpawnManager {
     this.heartsGroup.clear(true, true);
     this.shieldsGroup.clear(true, true);
     this.rewardBoxesGroup.clear(true, true);
+    this.cityCarpetBoxesGroup.clear(true, true);
     this.obstacles.clear(true, true);
     this.merchantCarts.clear(true, true);
     this.rugStacks.clear(true, true);
@@ -93,6 +100,7 @@ export class SpawnManager {
     updateGroup(this.heartsGroup);
     updateGroup(this.shieldsGroup);
     updateGroup(this.rewardBoxesGroup);
+    updateGroup(this.cityCarpetBoxesGroup);
     updateGroup(this.obstacles);
     updateGroup(this.merchantCarts);
     updateGroup(this.rugStacks);
@@ -305,7 +313,7 @@ export class SpawnManager {
                   patterns = [
                       'MERCHANT_CART', 'STACK_OF_RUGS', 'ROOFTOP_START',
                       'PLATFORM_SIMPLE_HOP', 'FREE_STARS', 'STREET_CAT',
-                    'PLATFORM_MINI_STAIRS', 'ELEVATED_BRIDGE_REWARD',
+                    'PLATFORM_MINI_STAIRS', 'ELEVATED_BRIDGE_REWARD', 'CITY_COURSE_CARPET_BOX',
                       'MOVING_PLATFORM_VERTICAL', 'MOVING_PLATFORM_HORIZONTAL',
                       'RISING_PILLAR'
                   ];
@@ -626,6 +634,18 @@ export class SpawnManager {
               this.addStar(x, groundY - 180);
               baseDelay = 2600;
               break;
+          case 'CITY_COURSE_CARPET_BOX':
+              if (zone !== 'CITY') { baseDelay = 2000; break; }
+              const runDist = this.scene.getRunDistance();
+              if (runDist - this.lastCityCarpetBoxAt < this.CITY_CARPET_BOX_INTERVAL_M) {
+                  baseDelay = 2000;
+                  break;
+              }
+              this.cityCarpetBoxesGroup.add(new CityCarpetBox(this.scene, x, groundY - 40));
+              this.lastCityCarpetBoxAt = runDist;
+              baseDelay = 2800;
+              break;
+
           case 'ELEVATED_BRIDGE_REWARD':
               // Gradual staircase: even step heights and comfortable horizontal gap so player can climb step-by-step
               const stepH1 = 52;
@@ -701,11 +721,13 @@ export class SpawnManager {
       this.spawnQueue = [];
       this.lastSpawnType = 'NONE';
       this.hasSpawnedElevatedBridgeReward = false;
+      this.lastCityCarpetBoxAt = 0;
 
       this.stars.clear(true, true);
       this.heartsGroup.clear(true, true);
       this.shieldsGroup.clear(true, true);
       this.rewardBoxesGroup.clear(true, true);
+      this.cityCarpetBoxesGroup.clear(true, true);
       this.obstacles.clear(true, true);
       this.merchantCarts.clear(true, true);
       this.rugStacks.clear(true, true);
