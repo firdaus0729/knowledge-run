@@ -411,12 +411,12 @@ function App() {
     }
   };
 
-  const handlePuzzleAnswer = (index: number) => {
+  const handlePuzzleAnswer = (answer: unknown) => {
     playUIButton();
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('MainScene') as MainScene;
       if (scene && typeof (scene as any).resolvePuzzleAnswer === 'function') {
-        (scene as any).resolvePuzzleAnswer(index);
+        (scene as any).resolvePuzzleAnswer(answer);
       }
     }
   };

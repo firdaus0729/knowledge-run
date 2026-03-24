@@ -91,6 +91,7 @@ export class EventManager {
   // Puzzle sequences (storm: 3–5 puzzles; library: 3–5 puzzles)
   private stormPuzzleQueue: ActivePuzzle[] = [];
   private stormPuzzleIndex: number = 0;
+  private stormSolvedCount: number = 0;
   private libraryPuzzleQueue: ActivePuzzle[] = [];
   private libraryPuzzleIndex: number = 0;
   /** When true, carpet overlap shows a puzzle; correct = ride, wrong = Bayt path. */
@@ -100,6 +101,42 @@ export class EventManager {
   constructor(scene: MainScene) {
     this.scene = scene;
     this.calculateNextChestDistance(PROGRESS.STAGE_1_LENGTH_M);
+  }
+
+  private pickOne<T>(arr: T[]): T {
+      return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  private buildStormPuzzleSequence(): ActivePuzzle[] {
+      const oneLineShapes: ActivePuzzle[] = [
+          { id: 'storm_line_star', type: 'STORM', mode: 'ONE_LINE', prompt: 'ارسم النجمة بخط واحد متصل.', timeoutMs: 12000, shapeId: 'star', points: [{ x: 0.5, y: 0.08 }, { x: 0.62, y: 0.38 }, { x: 0.92, y: 0.38 }, { x: 0.68, y: 0.58 }, { x: 0.76, y: 0.9 }, { x: 0.5, y: 0.7 }, { x: 0.24, y: 0.9 }, { x: 0.32, y: 0.58 }, { x: 0.08, y: 0.38 }, { x: 0.38, y: 0.38 }, { x: 0.5, y: 0.08 }] },
+          { id: 'storm_line_square_diag', type: 'STORM', mode: 'ONE_LINE', prompt: 'ارسم المربع مع القطر بخط واحد.', timeoutMs: 12000, shapeId: 'square_diag', points: [{ x: 0.2, y: 0.2 }, { x: 0.8, y: 0.2 }, { x: 0.8, y: 0.8 }, { x: 0.2, y: 0.8 }, { x: 0.2, y: 0.2 }, { x: 0.8, y: 0.8 }] },
+          { id: 'storm_line_triangle_inner', type: 'STORM', mode: 'ONE_LINE', prompt: 'ارسم المثلث مع الخط الداخلي بخط واحد.', timeoutMs: 12000, shapeId: 'triangle_inner', points: [{ x: 0.5, y: 0.12 }, { x: 0.82, y: 0.8 }, { x: 0.18, y: 0.8 }, { x: 0.5, y: 0.12 }, { x: 0.3, y: 0.5 }, { x: 0.7, y: 0.5 }] }
+      ];
+      const memoryPool: ActivePuzzle[] = [
+          { id: 'storm_mem_1', type: 'STORM', mode: 'MEMORY', prompt: 'تذكر ترتيب الرموز ثم اختره بنفس الترتيب.', timeoutMs: 12000, sequence: ['⭐️', '📘', '🗝️', '🌙'], showMs: 2000 },
+          { id: 'storm_mem_2', type: 'STORM', mode: 'MEMORY', prompt: 'تذكر ترتيب الرموز ثم اختره بنفس الترتيب.', timeoutMs: 12000, sequence: ['🌙', '⭐️', '📜', '🔑'], showMs: 2000 },
+          { id: 'storm_mem_3', type: 'STORM', mode: 'MEMORY', prompt: 'تذكر ترتيب الرموز ثم اختره بنفس الترتيب.', timeoutMs: 12000, sequence: ['📚', '🕯️', '🗝️', '⭐️'], showMs: 2000 }
+      ];
+      const matchPool: ActivePuzzle[] = [
+          { id: 'storm_match_1', type: 'STORM', mode: 'MATCH', prompt: 'صِل كل عنصر بما يناسبه ثم اضغط تحقق.', timeoutMs: 15000, leftItems: ['كتاب', 'قمر', 'شمس', 'مفتاح'], rightItems: ['ليل', 'باب', 'معرفة', 'نهار'], pairs: [{ leftIndex: 0, rightIndex: 2 }, { leftIndex: 1, rightIndex: 0 }, { leftIndex: 2, rightIndex: 3 }, { leftIndex: 3, rightIndex: 1 }] },
+          { id: 'storm_match_2', type: 'STORM', mode: 'MATCH', prompt: 'صِل كل عنصر بما يناسبه ثم اضغط تحقق.', timeoutMs: 15000, leftItems: ['مخطوطة', 'مصباح', 'نجمة', 'كتاب'], rightItems: ['سماء', 'حكمة', 'تعلم', 'ضوء'], pairs: [{ leftIndex: 0, rightIndex: 2 }, { leftIndex: 1, rightIndex: 3 }, { leftIndex: 2, rightIndex: 0 }, { leftIndex: 3, rightIndex: 1 }] }
+      ];
+
+      const sequence: ActivePuzzle[] = [];
+      sequence.push(this.pickOne(oneLineShapes));
+      sequence.push(this.pickOne(memoryPool));
+      sequence.push(this.pickOne(matchPool));
+
+      const mixed = [...oneLineShapes, ...memoryPool, ...matchPool];
+      while (sequence.length < 5) {
+          const candidate = this.pickOne(mixed);
+          const prev = sequence[sequence.length - 1];
+          if (prev && prev.id === candidate.id) continue;
+          sequence.push(candidate);
+      }
+
+      return sequence.map((p, idx) => ({ ...p, id: `${p.id}_${idx}_${Date.now()}` }));
   }
 
   public update(frameMove: number, delta: number) {
@@ -426,7 +463,9 @@ export class EventManager {
       if (this.carpetGatePending) return;
       this.carpetGatePending = true;
       this.scene.showPuzzle({
+          id: `carpet_gate_${Date.now()}`,
           type: 'CARPET_GATE',
+          mode: 'MCQ',
           prompt: 'بوابة البساط السحري\n\nقبل أن تركب البساط السحري، عليك أن تثبت حكمتك.\n\nاختر الرمز الذي يمثّل المعرفة لتبدأ الرحلة.',
           options: ['📚', '⚔️', '🏹'],
           correctIndex: 0,
@@ -760,10 +799,10 @@ export class EventManager {
                       this.scene.showNoorMessage('أهلاً بك في بيت الحكمة… هنا نهاية الرحلة وبداية العلم. 📚', false, 'greet');
                       // 3–5 short puzzles in sequence (placeholder; replace with your puzzles later)
                       this.libraryPuzzleQueue = [
-                          { type: 'LIBRARY', prompt: 'أيُّ هذه الرموز يعبِّر أكثر عن بيت الحكمة؟', options: ['📚', '⚔️', '🏹'], correctIndex: 0, timeoutMs: 8000 },
-                          { type: 'LIBRARY', prompt: 'ما الذي يرمز إلى العلم؟', options: ['📖', '🗡️', '🛡️'], correctIndex: 0, timeoutMs: 8000 },
-                          { type: 'LIBRARY', prompt: 'اختر الرمز الذي يمثّل الحكمة.', options: ['🦉', '🐺', '🦅'], correctIndex: 0, timeoutMs: 8000 },
-                          { type: 'LIBRARY', prompt: 'أيُّ لون يُذكّر بالمعرفة والذهب؟', options: ['🟡', '🔴', '🔵'], correctIndex: 0, timeoutMs: 8000 }
+                          { id: `library_mcq_1_${Date.now()}`, type: 'LIBRARY', mode: 'MCQ', prompt: 'أيُّ هذه الرموز يعبِّر أكثر عن بيت الحكمة؟', options: ['📚', '⚔️', '🏹'], correctIndex: 0, timeoutMs: 8000 },
+                          { id: `library_mcq_2_${Date.now()}`, type: 'LIBRARY', mode: 'MCQ', prompt: 'ما الذي يرمز إلى العلم؟', options: ['📖', '🗡️', '🛡️'], correctIndex: 0, timeoutMs: 8000 },
+                          { id: `library_mcq_3_${Date.now()}`, type: 'LIBRARY', mode: 'MCQ', prompt: 'اختر الرمز الذي يمثّل الحكمة.', options: ['🦉', '🐺', '🦅'], correctIndex: 0, timeoutMs: 8000 },
+                          { id: `library_mcq_4_${Date.now()}`, type: 'LIBRARY', mode: 'MCQ', prompt: 'أيُّ لون يُذكّر بالمعرفة والذهب؟', options: ['🟡', '🔴', '🔵'], correctIndex: 0, timeoutMs: 8000 }
                       ];
                       this.libraryPuzzleIndex = 0;
                       this.libraryPuzzleSequenceActive = true;
@@ -834,13 +873,9 @@ export class EventManager {
       if (this.refugeTent && this.refugeTent.active) this.refugeTent.setOccupied(true);
       this.scene.showNoorMessage("الحمد لله! نحن في أمان هنا. 🏕️", false, 'success');
       this.scene.replenishHealth();
-      // 3–5 short puzzles in sequence (placeholder content; replace with your puzzles later)
-      this.stormPuzzleQueue = [
-          { type: 'STORM', prompt: 'انظر إلى النمط: ★ ☆ ★ ☆ ؟ ما الرمز التالي؟', options: ['★', '☆', '⚪️'], correctIndex: 0, timeoutMs: 7000 },
-          { type: 'STORM', prompt: 'ما الشكل الذي يكمل التسلسل؟ ◯ □ ◯ □ ؟', options: ['◯', '□', '△'], correctIndex: 0, timeoutMs: 7000 },
-          { type: 'STORM', prompt: 'اختر الرمز الذي يمثّل المعرفة.', options: ['📚', '⚔️', '🏹'], correctIndex: 0, timeoutMs: 7000 },
-          { type: 'STORM', prompt: 'أيُّ لون يُذكّر بالصحراء؟', options: ['🟡', '🔵', '🟢'], correctIndex: 0, timeoutMs: 7000 }
-      ];
+      // Fixed 5-puzzle sandstorm sequence with random puzzle types/content for replayability.
+      this.stormSolvedCount = 0;
+      this.stormPuzzleQueue = this.buildStormPuzzleSequence();
       this.stormPuzzleIndex = 0;
       this.scene.time.delayedCall(1500, () => {
           this.scene.showPuzzle(this.stormPuzzleQueue[0]);
@@ -850,6 +885,7 @@ export class EventManager {
   /** Called by MainScene after any puzzle is resolved; advances storm/library sequence or no-op. */
   public reportPuzzleResolved(isCorrect: boolean) {
       if (this.stormPuzzleQueue.length > 0 && this.eventPhase === 'SANDSTORM_SHELTER') {
+          if (isCorrect) this.stormSolvedCount++;
           this.stormPuzzleIndex++;
           if (this.stormPuzzleIndex < this.stormPuzzleQueue.length) {
               this.scene.time.delayedCall(600, () => {
@@ -858,6 +894,9 @@ export class EventManager {
           } else {
               this.stormPuzzleQueue = [];
               this.stormPuzzleIndex = 0;
+              if (this.stormSolvedCount >= 5) {
+                  this.scene.showNoorMessage('عمل رائع! لقد أثبتَّ حكمتك.', false, 'success');
+              }
               this.triggerCutscene();
           }
           return;
@@ -1002,6 +1041,9 @@ export class EventManager {
       this.isEncounterOpening = false;
       this.sandstormTriggered = false; 
       this.sandstormTimer = 0;
+      this.stormPuzzleQueue = [];
+      this.stormPuzzleIndex = 0;
+      this.stormSolvedCount = 0;
       this.libraryBuilding = null;
       this.libraryStartDistance = 0;
       this.libraryEventTriggered = false;

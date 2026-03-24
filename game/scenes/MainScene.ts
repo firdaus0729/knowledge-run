@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import { PHYSICS, PROGRESS, getPlayerStartX, GAMEPLAY_CAMERA_ZOOM, getPlayerSpawnY } from '../../constants';
 import { Player } from '../objects/Player';
 import { Obstacle } from '../objects/Obstacle';
-import { Question, GameState, NoorMessage, StageResultsData, ActivePuzzle, PuzzleType } from '../../types';
+import { Question, GameState, NoorMessage, StageResultsData, ActivePuzzle, PuzzleType, PuzzleAnswerPayload } from '../../types';
 import { getQuestions } from '../data/questions';
 
 // Objects for Texture Generation
@@ -894,11 +894,37 @@ export class MainScene extends Phaser.Scene {
       });
   }
 
-  /** Called from React when player taps a puzzle option. */
-  public resolvePuzzleAnswer(selectedIndex: number) {
+  /** Called from React when player answers a puzzle (MCQ, line, memory, match). */
+  public resolvePuzzleAnswer(answer: number | PuzzleAnswerPayload) {
       if (!this.activePuzzle) return;
-      const isCorrect = selectedIndex === this.activePuzzle.correctIndex;
-      this.resolvePuzzle(isCorrect);
+      const puzzle = this.activePuzzle;
+
+      if (typeof answer === 'number') {
+          if (puzzle.mode !== 'MCQ') return;
+          this.resolvePuzzle(answer === puzzle.correctIndex);
+          return;
+      }
+
+      if (puzzle.mode === 'MCQ' && answer.mode === 'MCQ') {
+          this.resolvePuzzle(answer.selectedIndex === puzzle.correctIndex);
+          return;
+      }
+      if (puzzle.mode === 'ONE_LINE' && answer.mode === 'ONE_LINE') {
+          this.resolvePuzzle(answer.success);
+          return;
+      }
+      if (puzzle.mode === 'MEMORY' && answer.mode === 'MEMORY') {
+          const expected = puzzle.sequence;
+          const isCorrect = answer.order.length === expected.length && answer.order.every((value, index) => value === index);
+          this.resolvePuzzle(isCorrect);
+          return;
+      }
+      if (puzzle.mode === 'MATCH' && answer.mode === 'MATCH') {
+          const submitted = answer.pairs.map(p => `${p.leftIndex}-${p.rightIndex}`).sort();
+          const required = puzzle.pairs.map(p => `${p.leftIndex}-${p.rightIndex}`).sort();
+          const isCorrect = submitted.length === required.length && submitted.every((p, i) => p === required[i]);
+          this.resolvePuzzle(isCorrect);
+      }
   }
 
   private resolvePuzzle(isCorrect: boolean) {

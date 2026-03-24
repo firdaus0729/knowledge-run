@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GameState } from '../types';
+import { ActivePuzzle, GameState, MatchPair, PuzzleAnswerPayload } from '../types';
 
 interface GameUIProps {
   gameState: GameState;
@@ -14,6 +14,7 @@ interface GameUIProps {
   onResumeClick?: () => void;
   onRestartStageClick?: () => void;
   onReturnToMenuClick?: () => void;
+  onPuzzleAnswer?: (answer: PuzzleAnswerPayload | number) => void;
 }
 
 export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, onMessageDismiss, onSoundToggle, onMusicToggle, onPuzzleAnswer, onPauseClick, onResumeClick, onRestartStageClick, onReturnToMenuClick }) => {
@@ -33,6 +34,14 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
   const [stageTitleDisplay, setStageTitleDisplay] = useState<string | null>(null);
   const [stageTitleFadeOut, setStageTitleFadeOut] = useState(false);
   const stageTitleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [memoryPhase, setMemoryPhase] = useState<'show' | 'input'>('show');
+  const [memoryInput, setMemoryInput] = useState<number[]>([]);
+  const [memoryChoices, setMemoryChoices] = useState<number[]>([]);
+  const [matchPairs, setMatchPairs] = useState<MatchPair[]>([]);
+  const [pendingLeft, setPendingLeft] = useState<number | null>(null);
+  const [linePoints, setLinePoints] = useState<Array<{ x: number; y: number }>>([]);
+  const lineBoardRef = useRef<HTMLDivElement | null>(null);
+  const isDrawingRef = useRef(false);
 
   // Handle Noor Messages
   useEffect(() => {
@@ -51,6 +60,27 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
         setShowResult(null);
     }
   }, [gameState.activeQuestion]);
+
+  useEffect(() => {
+    const p = gameState.activePuzzle;
+    if (!p) return;
+    if (p.mode === 'MEMORY') {
+      setMemoryPhase('show');
+      setMemoryInput([]);
+      const indices = p.sequence.map((_, i) => i).sort(() => Math.random() - 0.5);
+      setMemoryChoices(indices);
+      const t = setTimeout(() => setMemoryPhase('input'), p.showMs);
+      return () => clearTimeout(t);
+    }
+    if (p.mode === 'MATCH') {
+      setMatchPairs([]);
+      setPendingLeft(null);
+    }
+    if (p.mode === 'ONE_LINE') {
+      setLinePoints([]);
+      isDrawingRef.current = false;
+    }
+  }, [gameState.activePuzzle]);
 
   // Step 2: smooth distance lerp (no jumps)
   useEffect(() => {
@@ -128,6 +158,74 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
       }
   };
 
+  const getBoardPoint = (ev: React.PointerEvent, board: HTMLDivElement) => {
+    const rect = board.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (ev.clientY - rect.top) / rect.height));
+    return { x, y };
+  };
+
+  const submitLinePuzzle = (puzzle: ActivePuzzle) => {
+    if (puzzle.mode !== 'ONE_LINE' || !onPuzzleAnswer) return;
+    if (linePoints.length < 8) {
+      setLinePoints([]);
+      return;
+    }
+    // Lenient tracing: count shape points that are close to any drawn point.
+    const threshold = 0.13;
+    const covered = puzzle.points.filter(sp =>
+      linePoints.some(lp => {
+        const dx = lp.x - sp.x;
+        const dy = lp.y - sp.y;
+        return Math.sqrt(dx * dx + dy * dy) <= threshold;
+      })
+    ).length;
+    const success = covered / puzzle.points.length >= 0.75;
+    if (success) onPuzzleAnswer({ mode: 'ONE_LINE', success: true });
+    else setLinePoints([]);
+  };
+
+  const onLinePointerDown = (ev: React.PointerEvent, puzzle: ActivePuzzle) => {
+    if (puzzle.mode !== 'ONE_LINE' || !lineBoardRef.current) return;
+    const point = getBoardPoint(ev, lineBoardRef.current);
+    isDrawingRef.current = true;
+    setLinePoints([point]);
+    (ev.target as HTMLElement).setPointerCapture?.(ev.pointerId);
+  };
+
+  const onLinePointerMove = (ev: React.PointerEvent, puzzle: ActivePuzzle) => {
+    if (puzzle.mode !== 'ONE_LINE' || !isDrawingRef.current || !lineBoardRef.current) return;
+    const point = getBoardPoint(ev, lineBoardRef.current);
+    setLinePoints(prev => [...prev, point]);
+  };
+
+  const onLinePointerUp = (puzzle: ActivePuzzle) => {
+    if (puzzle.mode !== 'ONE_LINE') return;
+    isDrawingRef.current = false;
+    submitLinePuzzle(puzzle);
+  };
+
+  const onMemoryTap = (choice: number, puzzle: ActivePuzzle) => {
+    if (puzzle.mode !== 'MEMORY' || memoryPhase !== 'input' || !onPuzzleAnswer) return;
+    const next = [...memoryInput, choice];
+    setMemoryInput(next);
+    if (next.length === puzzle.sequence.length) {
+      onPuzzleAnswer({ mode: 'MEMORY', order: next });
+    }
+  };
+
+  const addMatchPair = (leftIndex: number, rightIndex: number) => {
+    setMatchPairs(prev => {
+      const withoutLeft = prev.filter(p => p.leftIndex !== leftIndex && p.rightIndex !== rightIndex);
+      return [...withoutLeft, { leftIndex, rightIndex }];
+    });
+  };
+
+  const submitMatch = () => {
+    if (!onPuzzleAnswer) return;
+    onPuzzleAnswer({ mode: 'MATCH', pairs: matchPairs });
+  };
+
   const progressPercent = Math.min(100, gameState.stageProgressPercent ?? 0);
   const isProgressComplete = progressPercent >= 100;
 
@@ -144,18 +242,117 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
             <p className="text-white text-sm md:text-base leading-relaxed mb-5 whitespace-pre-line">
               {gameState.activePuzzle.prompt}
             </p>
-            <div className="flex flex-wrap justify-center gap-3">
-              {gameState.activePuzzle.options.map((opt, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => onPuzzleAnswer(idx)}
-                  className="pointer-events-auto min-w-[72px] min-h-[44px] px-4 py-2 rounded-2xl bg-black/60 border border-[#ffd700]/60 text-white font-bold text-sm md:text-base hover:bg-[#ffd700]/20 transition-colors"
+            {gameState.activePuzzle.mode === 'MCQ' && (
+              <div className="flex flex-wrap justify-center gap-3">
+                {gameState.activePuzzle.options.map((opt, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => onPuzzleAnswer({ mode: 'MCQ', selectedIndex: idx })}
+                    className="pointer-events-auto min-w-[72px] min-h-[44px] px-4 py-2 rounded-2xl bg-black/60 border border-[#ffd700]/60 text-white font-bold text-sm md:text-base hover:bg-[#ffd700]/20 transition-colors"
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {gameState.activePuzzle.mode === 'ONE_LINE' && (
+              <div className="flex flex-col items-center gap-3">
+                <div
+                  ref={lineBoardRef}
+                  className="w-full h-60 bg-black/40 rounded-2xl border border-[#ffd700]/30 relative overflow-hidden touch-none"
+                  onPointerDown={(e) => onLinePointerDown(e, gameState.activePuzzle)}
+                  onPointerMove={(e) => onLinePointerMove(e, gameState.activePuzzle)}
+                  onPointerUp={() => onLinePointerUp(gameState.activePuzzle)}
                 >
-                  {opt}
-                </button>
-              ))}
-            </div>
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <polyline
+                      points={gameState.activePuzzle.points.map(p => `${p.x * 100},${p.y * 100}`).join(' ')}
+                      fill="none"
+                      stroke="rgba(255,215,0,0.6)"
+                      strokeWidth="1.6"
+                      strokeDasharray="4 3"
+                    />
+                    <polyline
+                      points={linePoints.map(p => `${p.x * 100},${p.y * 100}`).join(' ')}
+                      fill="none"
+                      stroke="#7dd3fc"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <p className="text-xs text-white/70">إذا رفعت إصبعك قبل إكمال التتبع، يبدأ من جديد.</p>
+              </div>
+            )}
+
+            {gameState.activePuzzle.mode === 'MEMORY' && (
+              <div className="flex flex-col items-center gap-3">
+                {memoryPhase === 'show' ? (
+                  <div className="flex justify-center gap-3 text-3xl">
+                    {gameState.activePuzzle.sequence.map((s, i) => <span key={i}>{s}</span>)}
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-center gap-2 flex-wrap">
+                      {memoryChoices.map((idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => onMemoryTap(idx, gameState.activePuzzle)}
+                          className="pointer-events-auto min-w-[56px] min-h-[50px] rounded-xl bg-black/60 border border-[#ffd700]/50 text-2xl"
+                        >
+                          {gameState.activePuzzle.sequence[idx]}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="text-white/80 text-sm">الترتيب الحالي: {memoryInput.map(i => gameState.activePuzzle.sequence[i]).join(' ') || '—'}</div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {gameState.activePuzzle.mode === 'MATCH' && (
+              <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    {gameState.activePuzzle.leftItems.map((item, idx) => (
+                      <button
+                        type="button"
+                        key={`l-${idx}`}
+                        onClick={() => setPendingLeft(idx)}
+                        className={`pointer-events-auto w-full px-3 py-2 rounded-xl border text-white ${pendingLeft === idx ? 'border-cyan-300 bg-cyan-900/40' : 'border-white/20 bg-black/40'}`}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="space-y-2">
+                    {gameState.activePuzzle.rightItems.map((item, idx) => (
+                      <button
+                        type="button"
+                        key={`r-${idx}`}
+                        onClick={() => {
+                          if (pendingLeft === null) return;
+                          addMatchPair(pendingLeft, idx);
+                          setPendingLeft(null);
+                        }}
+                        className="pointer-events-auto w-full px-3 py-2 rounded-xl border border-white/20 bg-black/40 text-white"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="text-xs text-white/70">يمكنك إعادة الربط قبل الضغط على تحقق.</div>
+                <div className="flex gap-2 justify-center">
+                  <button type="button" onClick={() => setMatchPairs([])} className="pointer-events-auto px-3 py-2 rounded-xl bg-black/50 border border-white/20 text-white text-sm">إعادة</button>
+                  <button type="button" onClick={submitMatch} className="pointer-events-auto px-4 py-2 rounded-xl bg-[#ffd700]/20 border border-[#ffd700]/70 text-white font-bold text-sm">تحقق</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -438,9 +635,16 @@ export const GameUI: React.FC<GameUIProps> = ({ gameState, onRestart, onAnswer, 
                                       key={idx}
                                       disabled={showResult === 'correct'}
                                       onClick={() => handleOptionClick(idx)}
-                                      className={`p-4 rounded-xl text-lg font-bold transition-all duration-200 w-full flex items-center justify-between px-6 ${btnClass} shadow-md active:scale-[0.98]`}
+                                      className={`p-4 rounded-xl text-lg font-bold transition-all duration-200 w-full ${opt.image ? 'flex flex-col items-center gap-3' : 'flex items-center justify-between px-6'} ${btnClass} shadow-md active:scale-[0.98]`}
                                   >
-                                      <span>{opt}</span>
+                                      {opt.image ? (
+                                        <img
+                                          src={opt.image}
+                                          alt={opt.alt || opt.text || `خيار ${idx + 1}`}
+                                          className="w-28 h-28 object-cover rounded-xl border border-white/20"
+                                        />
+                                      ) : null}
+                                      <span>{opt.text}</span>
                                       {icon && <span>{icon}</span>}
                                   </button>
                               )

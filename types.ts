@@ -10,14 +10,59 @@ export interface NoorMessage {
 // --- MINI PUZZLES (Storm / Library / Dual Path) ---
 export type PuzzleType = 'STORM' | 'LIBRARY' | 'DUAL_PATH' | 'CARPET_GATE' | 'BRIDGE_BOX';
 
-export interface ActivePuzzle {
+export type PuzzleMode = 'MCQ' | 'ONE_LINE' | 'MEMORY' | 'MATCH';
+
+export interface PuzzlePoint {
+  x: number; // normalized 0..1
+  y: number; // normalized 0..1
+}
+
+export interface MatchPair {
+  leftIndex: number;
+  rightIndex: number;
+}
+
+export interface BasePuzzle {
   type: PuzzleType;
+  mode: PuzzleMode;
+  id: string;
   prompt: string;
-  options: string[];
-  correctIndex: number;
   /** Auto-timeout duration in ms (5–10 seconds). */
   timeoutMs: number;
 }
+
+export interface McqPuzzle extends BasePuzzle {
+  mode: 'MCQ';
+  options: string[];
+  correctIndex: number;
+}
+
+export interface OneLinePuzzle extends BasePuzzle {
+  mode: 'ONE_LINE';
+  shapeId: string;
+  points: PuzzlePoint[];
+}
+
+export interface MemoryPuzzle extends BasePuzzle {
+  mode: 'MEMORY';
+  sequence: string[];
+  showMs: number;
+}
+
+export interface MatchPuzzle extends BasePuzzle {
+  mode: 'MATCH';
+  leftItems: string[];
+  rightItems: string[];
+  pairs: MatchPair[];
+}
+
+export type ActivePuzzle = McqPuzzle | OneLinePuzzle | MemoryPuzzle | MatchPuzzle;
+
+export type PuzzleAnswerPayload =
+  | { mode: 'MCQ'; selectedIndex: number }
+  | { mode: 'ONE_LINE'; success: boolean }
+  | { mode: 'MEMORY'; order: number[] }
+  | { mode: 'MATCH'; pairs: MatchPair[] };
 
 /** Shown after desert end or library event */
 export interface StageResultsData {
@@ -65,9 +110,15 @@ export interface GameState {
 export interface Question {
   id: string;
   text: string;
-  options: string[];
+  options: QuestionOption[];
   correctIndex: number;
-  category?: 'math' | 'logic' | 'trivia' | 'science' | 'history' | 'geography' | 'language';
+  category?: 'math' | 'logic' | 'trivia' | 'science' | 'history' | 'geography' | 'language' | 'image';
+}
+
+export interface QuestionOption {
+  text?: string;
+  image?: string;
+  alt?: string;
 }
 
 // Colors for the Arabic/Evening theme
