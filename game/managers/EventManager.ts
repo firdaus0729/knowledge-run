@@ -847,19 +847,6 @@ export class EventManager {
       this.eventPhase = 'SANDSTORM_SHELTER';
       this.scene.setGameSpeed(0); 
       this.scene.player.stopStruggle();
-
-      // Mobile fix: sandstorm can interrupt while the player is hanging/climbing or while touch state is "stuck".
-      // Clear those states so jumping works immediately after shelter ends.
-      const p = this.scene.player as any;
-      this.scene.player.isHanging = false;
-      this.scene.player.isClimbing = false;
-      this.scene.player.body?.setAllowGravity(true);
-      this.scene.player.setVelocity(0, 0);
-      p.isHoldingJump = false;
-      p.wasHoldingJump = false;
-      p.jumpBuffer = 0;
-      p.isJumping = false;
-
       this.scene.player.isScripted = true; 
       const tentX = (this.refugeTent && this.refugeTent.active) ? this.refugeTent.x : this.scene.scale.width / 2;
       
@@ -940,9 +927,15 @@ export class EventManager {
 
   private endShelterSequence() {
       this.scene.endSandstorm(); 
-      this.scene.cameras.main.fadeIn(1000);
+      const fadeDurationMs = 1000;
+      this.scene.cameras.main.fadeIn(fadeDurationMs);
       if (this.refugeTent && this.refugeTent.active) this.refugeTent.setOccupied(false);
-      this.scene.cameras.main.once('camerafadeincomplete', () => {
+      // Mobile safety: camera fade completion event can be skipped depending on timing.
+      // Ensure we always resume the run (so jumping works again).
+      let didRun = false;
+      const finish = () => {
+          if (didRun) return;
+          didRun = true;
           this.scene.tweens.add({ targets: this.scene.player, alpha: 1, scale: 1, duration: 500 });
           this.scene.time.delayedCall(500, () => {
               // Storm over – revert to simple thankful line
@@ -952,31 +945,20 @@ export class EventManager {
                   this.resumeRunFromShelter();
               });
           });
-      });
+      };
+      this.scene.cameras.main.once('camerafadeincomplete', finish);
+      this.scene.time.delayedCall(fadeDurationMs + 60, finish);
   }
 
   private resumeRunFromShelter() {
       this.scene.clearQuestionAndResumePhysics();
       this.scene.player.isScripted = false;
       this.scene.player.stopStruggle();
-      this.scene.player.isHanging = false;
-      this.scene.player.isClimbing = false;
-      this.scene.player.body?.setAllowGravity(true);
-      this.scene.player.setVelocity(0, 0);
-
-      // Reset touch state so "just pressed" is detected after sandstorm.
-      const p = this.scene.player as any;
-      p.isHoldingJump = false;
-      p.wasHoldingJump = false;
-      p.jumpBuffer = 0;
-      p.isJumping = false;
-
-      this.scene.tweens.killTweensOf(this.scene.player);
-      this.scene.player.x = getPlayerStartX(this.scene.scale.width);
       this.scene.player.play('run');
       this.scene.setGameSpeed(1.0);
       if (this.scene.physics.world.isPaused) this.scene.physics.resume();
       this.scene.player.anims.resume();
+      this.scene.tweens.add({ targets: this.scene.player, x: getPlayerStartX(this.scene.scale.width), duration: 2000, ease: 'Power2.inOut' });
       this.eventPhase = 'NONE';
       this.encounterType = 'NONE';
       this.isEncounterActive = false;
