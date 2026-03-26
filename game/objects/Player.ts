@@ -310,7 +310,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.jumpKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     }
     this.scene.input.on('pointerdown', () => { this.isHoldingJump = true; });
-    this.scene.input.on('pointerup', () => { this.isHoldingJump = false; });
+    // Mobile safety: ensure touch-hold state is always released even when finger leaves canvas/UI overlays.
+    const releaseJump = () => { this.isHoldingJump = false; };
+    this.scene.input.on('pointerup', releaseJump);
+    this.scene.input.on('pointerupoutside', releaseJump);
+    this.scene.input.on('gameout', releaseJump);
+    this.scene.input.on('pointerout', releaseJump);
   }
 
   private initAnimations() {
@@ -527,6 +532,21 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     (this.scene as { playJump?: () => void }).playJump?.();
     const scene = this.scene as { onPlayerJump?: () => void };
     if (typeof scene.onPlayerJump === 'function') scene.onPlayerJump();
+  }
+
+  /** Explicit tap/click jump request from scene input (mobile-safe). */
+  public requestTapJump(now: number) {
+    if (this.isHanging || this.isClimbing || this.isScripted || this.isFlying) return;
+    if (!this.body) return;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    const onGround = body.blocked.down || body.touching.down;
+
+    // Preserve buffer behavior so taps slightly before landing still jump.
+    this.jumpBuffer = now + PHYSICS.BUFFER_TIME;
+
+    if (onGround && !this.isJumping && !this.isStruggling && !this.scene.tweens.isTweening(this)) {
+      this.executeJump();
+    }
   }
 
   private createGhost() {

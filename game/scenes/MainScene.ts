@@ -674,6 +674,18 @@ export class MainScene extends Phaser.Scene {
           }
           return; 
       }
+
+      // Explicit tap/click jump request (mobile-safe) once gameplay is back to normal.
+      if (
+          this.eventManager.eventPhase === 'NONE' &&
+          !this.isPausedMenu &&
+          !this.activeQuestion &&
+          !this.activePuzzle &&
+          !this.player.isScripted &&
+          !this.player.isFlying
+      ) {
+          this.player.requestTapJump(this.time.now);
+      }
   }
   
   private completeClimb() {
